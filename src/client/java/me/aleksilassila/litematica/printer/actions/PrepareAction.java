@@ -1,15 +1,12 @@
 package me.aleksilassila.litematica.printer.actions;
 
+import me.aleksilassila.litematica.printer.Printer;
 import me.aleksilassila.litematica.printer.implementation.PrinterPlacementContext;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.ItemStack;
-// import net.minecraft.network.packet.c2s.play.ClientCommandC2SPacket;
-
-//import net.minecraft.client.input.PlayerInput; // new way
 import net.minecraft.network.packet.c2s.play.PlayerInputC2SPacket;
-
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket;
 import net.minecraft.util.Hand;
 import net.minecraft.util.PlayerInput;
@@ -41,39 +38,14 @@ public class PrepareAction extends Action {
         } else {
             this.modifyPitch = false;
         }
-
-        // switch(lookDirection) {
-        //     case UP:
-        //         this.pitch = -90;
-        //         break;
-        //     case DOWN:
-        //         this.pitch = 90;
-        //         break;
-        //     case NORTH:
-        //         this.yaw = 180;
-        //         break;
-        //     case SOUTH:
-        //         this.yaw = 0;
-        //         break;
-        //     case WEST:
-        //         this.yaw = 90;
-        //         break;
-        //     case EAST:
-        //         this.yaw = 270;
-        //         break;
-        //     default:
-        //         this.modifyYaw = false;
-        //         this.modifyPitch = false;
-        //         break;
-        // }
-
     }
 
     public PrepareAction(PrinterPlacementContext context, float yaw, float pitch) {
         this.context = context;
-
         this.yaw = yaw;
         this.pitch = pitch;
+        this.modifyYaw = true;
+        this.modifyPitch = true;
     }
 
     @Override
@@ -83,12 +55,10 @@ public class PrepareAction extends Action {
 
         if (itemStack != null && client.interactionManager != null) {
             PlayerInventory inventory = player.getInventory();
-
-            // This thing is straight from MinecraftClient#doItemPick()
             if (player.getAbilities().creativeMode) {
                 player.giveItemStack(itemStack);
                 client.interactionManager.clickCreativeStack(player.getStackInHand(Hand.MAIN_HAND),
-                        36 + inventory.getSlotWithStack(player.getMainHandStack()));;
+                        36 + inventory.getSlotWithStack(player.getMainHandStack()));
             } else if (slot != -1) {
                 if (PlayerInventory.isValidHotbarIndex(slot)) {
                     inventory.setSelectedSlot(slot);
@@ -99,34 +69,46 @@ public class PrepareAction extends Action {
         }
 
         if (modifyPitch || modifyYaw) {
-            float yaw = modifyYaw ? this.yaw : player.getYaw();
-            float pitch = modifyPitch ? this.pitch : player.getPitch();
+            float targetYaw = modifyYaw ? this.yaw : player.getYaw();
+            float targetPitch = modifyPitch ? this.pitch : player.getPitch();
 
+            // 1. Отправляем пакет СЕРВЕРУ (чтобы он засчитал поворот)
             PlayerMoveC2SPacket packet = new PlayerMoveC2SPacket.Full(
                 player.getX(), 
                 player.getY(), 
                 player.getZ(), 
-                yaw, 
-                pitch, 
+                targetYaw, 
+                targetPitch, 
                 player.isOnGround(), 
-                player.horizontalCollision);
-
+                player.horizontalCollision
+            );
             player.networkHandler.sendPacket(packet);
-        }
 
-        if (context.shouldSneak) {                                                                                             
-            player.input.playerInput = new PlayerInput(player.input.playerInput.forward(), player.input.playerInput.backward(), player.input.playerInput.left(), player.input.playerInput.right(), player.input.playerInput.jump(), true, player.input.playerInput.sprint());
-            player.networkHandler.sendPacket(new PlayerInputC2SPacket(player.input.playerInput));
+            // 2. Обновляем данные для нашего МИКСИНА (чтобы клиентская логика отработала)
+            Printer.overrideRotation = true;
+            Printer.targetYaw = targetYaw;
+            Printer.targetPitch = targetPitch;
+
+            // ВАЖНО: Мы НЕ трогаем player.setYaw() вообще. Камера остается на месте.
         } else {
-            player.input.playerInput = new PlayerInput(player.input.playerInput.forward(), player.input.playerInput.backward(), player.input.playerInput.left(), player.input.playerInput.right(), player.input.playerInput.jump(), false, player.input.playerInput.sprint());
-            player.networkHandler.sendPacket(new PlayerInputC2SPacket(player.input.playerInput));
+            Printer.overrideRotation = false;
         }
-    }
 
-    @Override
-    public String toString() {
-        return "PrepareAction{" +
-                "context=" + context +
-                '}';
+        // Sneak logic
+        boolean sneaking = context.shouldSneak;
+        player.setSneaking(sneaking);
+        
+        PlayerInput currentInput = player.input.playerInput;
+        player.input.playerInput = new PlayerInput(
+            currentInput.forward(), 
+            currentInput.backward(), 
+            currentInput.left(), 
+            currentInput.right(), 
+            currentInput.jump(), 
+            sneaking, 
+            currentInput.sprint()
+        );
+        player.networkHandler.sendPacket(new PlayerInputC2SPacket(player.input.playerInput));
     }
 }
+

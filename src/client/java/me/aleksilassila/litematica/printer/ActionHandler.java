@@ -30,8 +30,6 @@ public class ActionHandler {
         if (tick % tickRate != 0) {
             return;
         }
-        
-        // --- НАЧАЛО ИЗМЕНЕНИЙ ---
 
         int blocksPerTick = Configs.BLOCKS_PER_TICK.getIntegerValue();
 
@@ -39,22 +37,39 @@ public class ActionHandler {
             Action nextAction = actionQueue.poll();
 
             if (nextAction != null) {
-                Printer.printDebug("Sending action {} ({}/{})", nextAction, i + 1, blocksPerTick);
+                Printer.printDebug("Sending action {}", nextAction);
+
+                // 1. Включаем режим "обмана" для геттеров игрока
+                Printer.isPlacing = true;
+
+                // 2. Выполняем действие. 
+                // Внутри этого вызова Minecraft спросит player.getYaw(), 
+                // попадет в наш Миксин и получит Printer.targetYaw.
                 nextAction.send(client, player);
+
+                // 3. Выключаем режим. Рендер кадра (который будет позже) получит реальный угол.
+                Printer.isPlacing = false;
+
             } else {
-                // Очередь пуста, прерываем цикл
                 lookAction = null;
+                Printer.overrideRotation = false;
                 break;
             }
         }
-        
-        // --- КОНЕЦ ИЗМЕНЕНИЙ ---
+
+        if (lookAction != null) {
+            Printer.overrideRotation = true;
+            Printer.targetYaw = lookAction.yaw; 
+            Printer.targetPitch = lookAction.pitch;
+        } else {
+            Printer.overrideRotation = false;
+        }
+
+        // Printer.isPrinting = !acceptsActions() || Configs.PRINT_MODE.getBooleanValue();
+
     }
 
         public boolean acceptsActions() {
-            // Позволяем добавлять новые действия, если в очереди меньше, 
-            // чем, например, двойное количество блоков, устанавливаемых за раз.
-            // Это создает буфер и сглаживает паузы.
             return actionQueue.size() < Configs.BLOCKS_PER_TICK.getIntegerValue() * 2;
         }
 

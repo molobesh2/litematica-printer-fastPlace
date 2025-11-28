@@ -30,6 +30,11 @@ public class Printer {
     public final ActionHandler actionHandler;
     private final Guides interactionGuides = new Guides();
 
+    public static boolean isPlacing = false;        // Флаг: ставит ли сейчас принтер блок
+    public static boolean overrideRotation = false; // Флаг: нужно ли подменять поворот
+    public static float targetYaw = 0f;             // Целевой Yaw
+    public static float targetPitch = 0f;           // Целевой Pitch
+
     public Printer(@Nonnull MinecraftClient client, @Nonnull ClientPlayerEntity player) {
         this.player = player;
         this.actionHandler = new ActionHandler(client, player);
@@ -47,18 +52,13 @@ public class Printer {
         }
 
         if (!Configs.PRINT_MODE.getBooleanValue() && !Hotkeys.PRINT.getKeybind().isPressed()) {
-            // RotationManager.stopOverride();
             return false;
         }
-
-        // RotationManager.startOverride();
-
         PlayerAbilities abilities = player.getAbilities();
         if (!abilities.allowModifyWorld) {
             return false;
         }
         
-        // --- НАЧАЛО ИЗМЕНЕНИЙ ---
 
         int blocksFoundThisTick = 0;
         final int blocksPerTick = Configs.BLOCKS_PER_TICK.getIntegerValue();
@@ -67,7 +67,7 @@ public class Printer {
         findBlock:
         for (BlockPos position : positions) {
             SchematicBlockState state = new SchematicBlockState(player.getWorld(), worldSchematic, position);
-            if (state.targetState.equals(state.currentState) || state.targetState.isAir()) {
+            if (state.targetState.equals(state.currentState) || state.targetState.isAir() || !state.currentState.isAir()) {
                 continue;
             }
 
@@ -81,12 +81,10 @@ public class Printer {
                     
                     blocksFoundThisTick++;
                     
-                    // Если мы нашли достаточно блоков для этого тика, прекращаем поиск
                     if (blocksFoundThisTick >= blocksPerTick) {
                         break findBlock; 
                     }
                     
-                    // Переходим к следующей позиции, а не к следующему гайду для этой же позиции
                     continue findBlock; 
                 }
                 
@@ -97,8 +95,7 @@ public class Printer {
         }
 
         return blocksFoundThisTick > 0;
-        
-        // --- КОНЕЦ ИЗМЕНЕНИЙ ---
+
     }
 
     private List<BlockPos> getReachablePositions() {
