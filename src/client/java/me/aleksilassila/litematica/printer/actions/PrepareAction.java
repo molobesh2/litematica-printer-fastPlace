@@ -72,19 +72,15 @@ public class PrepareAction extends Action {
             float targetYaw = modifyYaw ? this.yaw : player.getYaw();
             float targetPitch = modifyPitch ? this.pitch : player.getPitch();
 
-            // 1. Отправляем пакет СЕРВЕРУ
+            // Пакет на сервер
             PlayerMoveC2SPacket packet = new PlayerMoveC2SPacket.Full(
-                player.getX(), 
-                player.getY(), 
-                player.getZ(), 
-                targetYaw, 
-                targetPitch, 
-                player.isOnGround(), 
-                player.horizontalCollision
+                player.getX(), player.getY(), player.getZ(), 
+                targetYaw, targetPitch, 
+                player.isOnGround(), player.horizontalCollision
             );
             player.networkHandler.sendPacket(packet);
 
-            // 2. Передаем данные в Printer (для ActionHandler)
+            // Обновляем Printer, но НЕ локального игрока
             Printer.overrideRotation = true;
             Printer.targetYaw = targetYaw;
             Printer.targetPitch = targetPitch;
