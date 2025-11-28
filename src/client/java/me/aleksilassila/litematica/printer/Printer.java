@@ -4,14 +4,17 @@ import fi.dy.masa.litematica.data.DataManager;
 import fi.dy.masa.litematica.world.SchematicWorldHandler;
 import fi.dy.masa.litematica.world.WorldSchematic;
 import me.aleksilassila.litematica.printer.actions.Action;
+import me.aleksilassila.litematica.printer.actions.PrepareAction;
 import me.aleksilassila.litematica.printer.config.Configs;
 import me.aleksilassila.litematica.printer.config.Hotkeys;
 import me.aleksilassila.litematica.printer.guides.Guide;
 import me.aleksilassila.litematica.printer.guides.Guides;
+import me.aleksilassila.litematica.printer.mixin.EntityAccessor;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.entity.player.PlayerAbilities;
+import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket;
 import net.minecraft.state.property.Properties;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
@@ -69,7 +72,6 @@ public class Printer {
         if (tasks.isEmpty()) return false;
 
         // --- 2. Сортировка ---
-        // Группируем по направлению, используя ordinal() (числовой индекс)
         tasks.sort(Comparator
             .<PlacementTask, Boolean>comparing(task -> !isMatchingFacing(task.state.targetState, player.getHorizontalFacing()))
             .thenComparingInt(task -> getDirectionId(task.state.targetState))
@@ -80,27 +82,86 @@ public class Printer {
         int blocksFoundThisTick = 0;
         final int blocksPerTick = Configs.BLOCKS_PER_TICK.getIntegerValue();
 
+        float initialYaw = player.getYaw();
+        float initialPitch = player.getPitch();
+
         findBlock:
         for (PlacementTask task : tasks) {
             Guide[] guides = interactionGuides.getInteractionGuides(task.state);
 
-            for (Guide guide : guides) {
-                if (guide.canExecute(player) && Configs.INTERACT_BLOCKS.getBooleanValue()) {
-                    printDebug("Executing {} for {}", guide, task.state);
-                    List<Action> actions = guide.execute(player);
+            // А) Рассчитываем идеальный взгляд на блок
+            Vec3d rotation = calculateLookAt(task.pos);
+            float lookYaw = (float) rotation.x;
+            float lookPitch = (float) rotation.y;
+
+            // Б) Применяем его к игроку, чтобы RayTrace сработал идеально
+            applyRotation(lookYaw, lookPitch);
+
+            try {
+                for (Guide guide : guides) {
+                    if (guide.canExecute(player) && Configs.INTERACT_BLOCKS.getBooleanValue()) {
+                        printDebug("Executing {} for {}", guide, task.state);
+                        
+                        // В) Генерируем действия (используя идеальный взгляд)
+                        List<Action> actions = new ArrayList<>(guide.execute(player));
+                        
+                        // Г) ПРОВЕРКА: Если Guide не создал поворот (потому что мы уже смотрим),
+                        // но блок требует точности - ВРУЧНУЮ добавляем действие поворота.
+                        if (!actions.isEmpty() && !(actions.get(0) instanceof PrepareAction)) {
+                            actions.add(0, new Action() {
+                                @Override
+                                public void send(MinecraftClient client, ClientPlayerEntity player) {
+                                    // 1. Отправляем пакет на сервер
+                                    player.networkHandler.sendPacket(new PlayerMoveC2SPacket.Full(
+                                        player.getX(), player.getY(), player.getZ(),
+                                        lookYaw, lookPitch,
+                                        player.isOnGround(), player.horizontalCollision
+                                    ));
+                                    // 2. Обновляем Printer, чтобы ActionHandler повернул игрока локально
+                                    Printer.overrideRotation = true;
+                                    Printer.targetYaw = lookYaw;
+                                    Printer.targetPitch = lookPitch;
+                                }
+                            });
+                        }
+
+                        actionHandler.addActions(actions.toArray(Action[]::new));
+                        
+                        blocksFoundThisTick++;
+                        if (blocksFoundThisTick >= blocksPerTick) break findBlock;
+                        break; 
+                    }
                     
-                    actionHandler.addActions(actions.toArray(Action[]::new));
-                    
-                    blocksFoundThisTick++;
-                    if (blocksFoundThisTick >= blocksPerTick) break findBlock;
-                    break; 
+                    if (guide.skipOtherGuides()) break;
                 }
-                
-                if (guide.skipOtherGuides()) break;
+            } finally {
+                // Д) Возвращаем реальный взгляд (обязательно!)
+                applyRotation(initialYaw, initialPitch);
             }
         }
 
         return blocksFoundThisTick > 0;
+    }
+    
+    // Вспомогательный метод для расчета углов
+    private Vec3d calculateLookAt(BlockPos pos) {
+        Vec3d eyePos = player.getEyePos();
+        Vec3d targetCenter = Vec3d.ofCenter(pos);
+        double d = targetCenter.x - eyePos.x;
+        double e = targetCenter.y - eyePos.y;
+        double f = targetCenter.z - eyePos.z;
+        double g = Math.sqrt(d * d + f * f);
+        float pitch = MathHelper.wrapDegrees((float)(-(MathHelper.atan2(e, g) * 57.2957763671875)));
+        float yaw = MathHelper.wrapDegrees((float)(MathHelper.atan2(f, d) * 57.2957763671875) - 90.0F);
+        return new Vec3d(yaw, pitch, 0);
+    }
+
+    // Вспомогательный метод для применения поворота (с Accessors)
+    private void applyRotation(float yaw, float pitch) {
+        player.setYaw(yaw);
+        player.setPitch(pitch);
+        ((EntityAccessor) player).setPrevYaw(yaw);
+        ((EntityAccessor) player).setPrevPitch(pitch);
     }
 
     private boolean isMatchingFacing(BlockState state, Direction playerFacing) {
@@ -110,7 +171,6 @@ public class Printer {
         return true; 
     }
 
-    // ИСПРАВЛЕНИЕ: Используем ordinal() вместо getId()
     private int getDirectionId(BlockState state) {
         if (state.contains(Properties.HORIZONTAL_FACING)) return state.get(Properties.HORIZONTAL_FACING).ordinal();
         if (state.contains(Properties.FACING)) return state.get(Properties.FACING).ordinal();
