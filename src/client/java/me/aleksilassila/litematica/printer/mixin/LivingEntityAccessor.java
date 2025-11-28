@@ -6,15 +6,17 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 
 @Mixin(LivingEntity.class)
 public interface LivingEntityAccessor {
-    @Accessor("prevHeadYaw")
+    // field_6241 = prevHeadYaw
+    @Accessor("field_6241")
     float getPrevHeadYaw();
 
-    @Accessor("prevHeadYaw")
+    @Accessor("field_6241")
     void setPrevHeadYaw(float prevHeadYaw);
 
-    @Accessor("prevBodyYaw")
+    // field_6220 = prevBodyYaw
+    @Accessor("field_6220")
     float getPrevBodyYaw();
 
-    @Accessor("prevBodyYaw")
+    @Accessor("field_6220")
     void setPrevBodyYaw(float prevBodyYaw);
 }

@@ -6,15 +6,17 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 
 @Mixin(Entity.class)
 public interface EntityAccessor {
-    @Accessor("prevYaw")
+    // field_6004 = prevYaw
+    @Accessor("field_6004")
     float getPrevYaw();
 
-    @Accessor("prevYaw")
+    @Accessor("field_6004")
     void setPrevYaw(float prevYaw);
 
-    @Accessor("prevPitch")
+    // field_5965 = prevPitch
+    @Accessor("field_5965")
     float getPrevPitch();
 
-    @Accessor("prevPitch")
+    @Accessor("field_5965")
     void setPrevPitch(float prevPitch);
 }

@@ -8,7 +8,9 @@
     "ConfigsMixin",
     "GuiConfigsMixin",
     "InputHandlerMixin",
-    "PlayerMoveC2SPacketMixin"
+    "PlayerMoveC2SPacketMixin",
+    "EntityAccessor",
+    "LivingEntityAccessor"
   ],
   "injectors": {
     "defaultRequire": 1
