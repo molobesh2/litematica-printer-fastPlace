@@ -1,7 +1,6 @@
 package me.aleksilassila.litematica.printer;
 
 import fi.dy.masa.litematica.data.DataManager;
-import fi.dy.masa.litematica.util.RayTraceUtils;
 import fi.dy.masa.litematica.world.SchematicWorldHandler;
 import fi.dy.masa.litematica.world.WorldSchematic;
 import me.aleksilassila.litematica.printer.actions.Action;
@@ -12,7 +11,6 @@ import me.aleksilassila.litematica.printer.guides.Guides;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.entity.player.PlayerAbilities;
-import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
@@ -25,15 +23,20 @@ import java.util.List;
 
 public class Printer {
     public static final Logger logger = LogManager.getLogger(PrinterReference.MOD_ID);
+
+    // Переменные для обмена данными
+    public static boolean overrideRotation = false;
+    public static float targetYaw = 0f;
+    public static float targetPitch = 0f;
+    
+    // Оставляем isPlacing на случай, если вы забыли удалить старый миксин, 
+    // чтобы компилятор не ругался, но логически он не используется.
+    public static boolean isPlacing = false; 
+
     @Nonnull
     public final ClientPlayerEntity player;
     public final ActionHandler actionHandler;
     private final Guides interactionGuides = new Guides();
-
-    public static boolean isPlacing = false;        // Флаг: ставит ли сейчас принтер блок
-    public static boolean overrideRotation = false; // Флаг: нужно ли подменять поворот
-    public static float targetYaw = 0f;             // Целевой Yaw
-    public static float targetPitch = 0f;           // Целевой Pitch
 
     public Printer(@Nonnull MinecraftClient client, @Nonnull ClientPlayerEntity player) {
         this.player = player;
@@ -54,12 +57,13 @@ public class Printer {
         if (!Configs.PRINT_MODE.getBooleanValue() && !Hotkeys.PRINT.getKeybind().isPressed()) {
             return false;
         }
+
         PlayerAbilities abilities = player.getAbilities();
         if (!abilities.allowModifyWorld) {
             return false;
         }
-        
 
+        // Оптимизированный поиск
         int blocksFoundThisTick = 0;
         final int blocksPerTick = Configs.BLOCKS_PER_TICK.getIntegerValue();
 
@@ -67,7 +71,7 @@ public class Printer {
         findBlock:
         for (BlockPos position : positions) {
             SchematicBlockState state = new SchematicBlockState(player.getWorld(), worldSchematic, position);
-            if (state.targetState.equals(state.currentState) || state.targetState.isAir() || !state.currentState.isAir()) {
+            if (state.targetState.equals(state.currentState) || state.targetState.isAir()) {
                 continue;
             }
 
@@ -78,16 +82,13 @@ public class Printer {
                     printDebug("Executing {} for {}", guide, state);
                     List<Action> actions = guide.execute(player);
                     actionHandler.addActions(actions.toArray(Action[]::new));
-                    
+
                     blocksFoundThisTick++;
-                    
                     if (blocksFoundThisTick >= blocksPerTick) {
-                        break findBlock; 
+                        break findBlock;
                     }
-                    
-                    continue findBlock; 
+                    continue findBlock;
                 }
-                
                 if (guide.skipOtherGuides()) {
                     continue findBlock;
                 }
@@ -95,7 +96,6 @@ public class Printer {
         }
 
         return blocksFoundThisTick > 0;
-
     }
 
     private List<BlockPos> getReachablePositions() {

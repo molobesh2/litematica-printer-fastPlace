@@ -72,7 +72,7 @@ public class PrepareAction extends Action {
             float targetYaw = modifyYaw ? this.yaw : player.getYaw();
             float targetPitch = modifyPitch ? this.pitch : player.getPitch();
 
-            // 1. Отправляем пакет СЕРВЕРУ (чтобы он засчитал поворот)
+            // 1. Отправляем пакет СЕРВЕРУ
             PlayerMoveC2SPacket packet = new PlayerMoveC2SPacket.Full(
                 player.getX(), 
                 player.getY(), 
@@ -84,17 +84,14 @@ public class PrepareAction extends Action {
             );
             player.networkHandler.sendPacket(packet);
 
-            // 2. Обновляем данные для нашего МИКСИНА (чтобы клиентская логика отработала)
+            // 2. Передаем данные в Printer (для ActionHandler)
             Printer.overrideRotation = true;
             Printer.targetYaw = targetYaw;
             Printer.targetPitch = targetPitch;
-
-            // ВАЖНО: Мы НЕ трогаем player.setYaw() вообще. Камера остается на месте.
         } else {
             Printer.overrideRotation = false;
         }
 
-        // Sneak logic
         boolean sneaking = context.shouldSneak;
         player.setSneaking(sneaking);
         
@@ -110,5 +107,13 @@ public class PrepareAction extends Action {
         );
         player.networkHandler.sendPacket(new PlayerInputC2SPacket(player.input.playerInput));
     }
-}
 
+    @Override
+    public String toString() {
+        return "PrepareAction{" +
+                "yaw=" + yaw +
+                ", pitch=" + pitch +
+                ", context=" + context +
+                '}';
+    }
+}

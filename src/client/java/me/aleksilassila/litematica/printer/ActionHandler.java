@@ -3,6 +3,8 @@ package me.aleksilassila.litematica.printer;
 import me.aleksilassila.litematica.printer.actions.Action;
 import me.aleksilassila.litematica.printer.actions.PrepareAction;
 import me.aleksilassila.litematica.printer.config.Configs;
+import me.aleksilassila.litematica.printer.mixin.EntityAccessor;
+import me.aleksilassila.litematica.printer.mixin.LivingEntityAccessor;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
 
@@ -37,18 +39,60 @@ public class ActionHandler {
             Action nextAction = actionQueue.poll();
 
             if (nextAction != null) {
-                Printer.printDebug("Sending action {}", nextAction);
+                // Используем Аксессоры, так как поля protected
+                EntityAccessor entityAccess = (EntityAccessor) player;
+                LivingEntityAccessor livingAccess = (LivingEntityAccessor) player;
 
-                // 1. Включаем режим "обмана" для геттеров игрока
-                Printer.isPlacing = true;
+                // 1. Сохраняем реальное состояние
+                float realYaw = player.getYaw();
+                float realPitch = player.getPitch();
+                float realPrevYaw = entityAccess.getPrevYaw();
+                float realPrevPitch = entityAccess.getPrevPitch();
+                
+                float realHeadYaw = player.headYaw;
+                float realPrevHeadYaw = livingAccess.getPrevHeadYaw();
+                
+                float realBodyYaw = player.bodyYaw;
+                float realPrevBodyYaw = livingAccess.getPrevBodyYaw();
 
-                // 2. Выполняем действие. 
-                // Внутри этого вызова Minecraft спросит player.getYaw(), 
-                // попадет в наш Миксин и получит Printer.targetYaw.
-                nextAction.send(client, player);
+                boolean applyRotation = Printer.overrideRotation;
 
-                // 3. Выключаем режим. Рендер кадра (который будет позже) получит реальный угол.
-                Printer.isPlacing = false;
+                if (applyRotation) {
+                    float targetYaw = Printer.targetYaw;
+                    float targetPitch = Printer.targetPitch;
+
+                    // Устанавливаем текущие углы
+                    player.setYaw(targetYaw);
+                    player.setPitch(targetPitch);
+                    player.setHeadYaw(targetYaw);
+                    player.setBodyYaw(targetYaw);
+
+                    // Убиваем интерполяцию через Аксессоры
+                    entityAccess.setPrevYaw(targetYaw);
+                    entityAccess.setPrevPitch(targetPitch);
+                    livingAccess.setPrevHeadYaw(targetYaw);
+                    livingAccess.setPrevBodyYaw(targetYaw);
+                }
+
+                try {
+                    // Выполняем действие с подмененными углами
+                    nextAction.send(client, player);
+                } finally {
+                    // Возвращаем все назад
+                    if (applyRotation) {
+                        player.setYaw(realYaw);
+                        player.setPitch(realPitch);
+                        
+                        entityAccess.setPrevYaw(realPrevYaw);
+                        entityAccess.setPrevPitch(realPrevPitch);
+                        
+                        player.setHeadYaw(realHeadYaw);
+                        livingAccess.setPrevHeadYaw(realPrevHeadYaw);
+                        
+                        player.setBodyYaw(realBodyYaw);
+                        livingAccess.setPrevBodyYaw(realPrevBodyYaw);
+                    }
+                }
 
             } else {
                 lookAction = null;
@@ -56,34 +100,21 @@ public class ActionHandler {
                 break;
             }
         }
-
-        if (lookAction != null) {
-            Printer.overrideRotation = true;
-            Printer.targetYaw = lookAction.yaw; 
-            Printer.targetPitch = lookAction.pitch;
-        } else {
-            Printer.overrideRotation = false;
-        }
-
-        // Printer.isPrinting = !acceptsActions() || Configs.PRINT_MODE.getBooleanValue();
-
     }
 
-        public boolean acceptsActions() {
-            return actionQueue.size() < Configs.BLOCKS_PER_TICK.getIntegerValue() * 2;
-        }
+    public boolean acceptsActions() {
+        return actionQueue.isEmpty();
+    }
 
     public void addActions(Action... actions) {
         if (!acceptsActions()) {
             return;
         }
-
         for (Action action : actions) {
             if (action instanceof PrepareAction) {
                 lookAction = (PrepareAction) action;
             }
         }
-
         actionQueue.addAll(List.of(actions));
     }
 }
