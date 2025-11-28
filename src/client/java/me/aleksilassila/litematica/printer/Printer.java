@@ -10,7 +10,7 @@ import me.aleksilassila.litematica.printer.config.Hotkeys;
 import me.aleksilassila.litematica.printer.guides.Guide;
 import me.aleksilassila.litematica.printer.guides.Guides;
 import me.aleksilassila.litematica.printer.mixin.EntityAccessor;
-import net.minecraft.block.BlockState;
+import net.minecraft.block.BlockState; // ВОТ ЭТОТ ИМПОРТ БЫЛ НУЖЕН
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.entity.player.PlayerAbilities;
@@ -48,14 +48,28 @@ public class Printer {
     }
 
     public boolean onGameTick() {
-        WorldSchematic worldSchematic = SchematicWorldHandler.getSchematicWorld();
+        // --- ОБРАБОТКА ХОТКЕЯ ---
+        if (Hotkeys.TOGGLE_ACCURATE_MODE.getKeybind().isPressed()) {
+            Configs.ACCURATE_MODE.setBooleanValue(!Configs.ACCURATE_MODE.getBooleanValue());
+            MinecraftClient.getInstance().inGameHud.setOverlayMessage(
+                net.minecraft.text.Text.of("Accurate Mode: " + (Configs.ACCURATE_MODE.getBooleanValue() ? "ON" : "OFF")),
+                false
+            );
+        }
 
+        WorldSchematic worldSchematic = SchematicWorldHandler.getSchematicWorld();
         if (!actionHandler.acceptsActions()) return false;
         if (worldSchematic == null) return false;
         if (!Configs.PRINT_MODE.getBooleanValue() && !Hotkeys.PRINT.getKeybind().isPressed()) return false;
 
         PlayerAbilities abilities = player.getAbilities();
         if (!abilities.allowModifyWorld) return false;
+
+        // --- ЛОГИКА КОЛИЧЕСТВА БЛОКОВ ---
+        boolean accurateMode = Configs.ACCURATE_MODE.getBooleanValue();
+        
+        // В точном режиме 1 блок. Задержка в 1 тик управляется ActionHandler'ом.
+        int blocksPerTick = accurateMode ? 1 : Configs.BLOCKS_PER_TICK.getIntegerValue();
 
         // --- 1. Сбор задач ---
         List<BlockPos> rawPositions = getReachablePositions();
@@ -80,8 +94,7 @@ public class Printer {
 
         // --- 3. Выполнение ---
         int blocksFoundThisTick = 0;
-        final int blocksPerTick = Configs.BLOCKS_PER_TICK.getIntegerValue();
-
+        
         float initialYaw = player.getYaw();
         float initialPitch = player.getPitch();
 
@@ -89,12 +102,10 @@ public class Printer {
         for (PlacementTask task : tasks) {
             Guide[] guides = interactionGuides.getInteractionGuides(task.state);
 
-            // А) Рассчитываем идеальный взгляд на блок
+            // Виртуальный поворот для RayTrace
             Vec3d rotation = calculateLookAt(task.pos);
             float lookYaw = (float) rotation.x;
             float lookPitch = (float) rotation.y;
-
-            // Б) Применяем его к игроку, чтобы RayTrace сработал идеально
             applyRotation(lookYaw, lookPitch);
 
             try {
@@ -102,22 +113,19 @@ public class Printer {
                     if (guide.canExecute(player) && Configs.INTERACT_BLOCKS.getBooleanValue()) {
                         printDebug("Executing {} for {}", guide, task.state);
                         
-                        // В) Генерируем действия (используя идеальный взгляд)
                         List<Action> actions = new ArrayList<>(guide.execute(player));
                         
-                        // Г) ПРОВЕРКА: Если Guide не создал поворот (потому что мы уже смотрим),
-                        // но блок требует точности - ВРУЧНУЮ добавляем действие поворота.
+                        // Если это первый блок в серии и он не имеет явного поворота,
+                        // добавляем принудительный поворот
                         if (!actions.isEmpty() && !(actions.get(0) instanceof PrepareAction)) {
                             actions.add(0, new Action() {
                                 @Override
                                 public void send(MinecraftClient client, ClientPlayerEntity player) {
-                                    // 1. Отправляем пакет на сервер
                                     player.networkHandler.sendPacket(new PlayerMoveC2SPacket.Full(
                                         player.getX(), player.getY(), player.getZ(),
                                         lookYaw, lookPitch,
                                         player.isOnGround(), player.horizontalCollision
                                     ));
-                                    // 2. Обновляем Printer, чтобы ActionHandler повернул игрока локально
                                     Printer.overrideRotation = true;
                                     Printer.targetYaw = lookYaw;
                                     Printer.targetPitch = lookPitch;
@@ -135,7 +143,6 @@ public class Printer {
                     if (guide.skipOtherGuides()) break;
                 }
             } finally {
-                // Д) Возвращаем реальный взгляд (обязательно!)
                 applyRotation(initialYaw, initialPitch);
             }
         }
@@ -143,7 +150,6 @@ public class Printer {
         return blocksFoundThisTick > 0;
     }
     
-    // Вспомогательный метод для расчета углов
     private Vec3d calculateLookAt(BlockPos pos) {
         Vec3d eyePos = player.getEyePos();
         Vec3d targetCenter = Vec3d.ofCenter(pos);
@@ -156,7 +162,6 @@ public class Printer {
         return new Vec3d(yaw, pitch, 0);
     }
 
-    // Вспомогательный метод для применения поворота (с Accessors)
     private void applyRotation(float yaw, float pitch) {
         player.setYaw(yaw);
         player.setPitch(pitch);

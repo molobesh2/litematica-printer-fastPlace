@@ -17,6 +17,9 @@ public class ActionHandler {
     private final ClientPlayerEntity player;
     private final Queue<Action> actionQueue = new LinkedList<>();
     public PrepareAction lookAction = null;
+    
+    // Таймер задержки для точного режима
+    private int delayTimer = 0;
 
     public ActionHandler(MinecraftClient client, ClientPlayerEntity player) {
         this.client = client;
@@ -31,9 +34,19 @@ public class ActionHandler {
 
         if (tick % tickRate != 0) return;
 
-        int blocksPerTick = Configs.BLOCKS_PER_TICK.getIntegerValue();
+        boolean accurateMode = Configs.ACCURATE_MODE.getBooleanValue();
 
-        // 1. Запоминаем реальное состояние ОДИН РАЗ
+        // В точном режиме проверяем таймер задержки
+        if (accurateMode) {
+            if (delayTimer > 0) {
+                delayTimer--;
+                return; // Пропускаем тик (ждем синхронизации сервера)
+            }
+        }
+
+        // В точном режиме строго 1 действие за тик (игнорируем blocksPerTick из конфига)
+        int blocksPerTick = accurateMode ? 1 : Configs.BLOCKS_PER_TICK.getIntegerValue();
+
         float realYaw = player.getYaw();
         float realPitch = player.getPitch();
         
@@ -54,9 +67,8 @@ public class ActionHandler {
                 Action nextAction = actionQueue.poll();
 
                 if (nextAction != null) {
-                    // 2. Умное переключение состояния
+                    // Логика поворота камеры
                     if (Printer.overrideRotation) {
-                        // Если действие требует поворота - ставим его
                         float targetYaw = Printer.targetYaw;
                         float targetPitch = Printer.targetPitch;
 
@@ -72,8 +84,7 @@ public class ActionHandler {
                         
                         wasModified = true;
                     } else if (wasModified) {
-                        // ЕСЛИ overrideRotation == false, НО мы все еще "грязные" от прошлого блока -> СБРАСЫВАЕМ
-                        // Это критически важно для смешанной установки
+                        // Если overrideRotation выключился (новая группа блоков), сбрасываем камеру
                         player.setYaw(realYaw);
                         player.setPitch(realPitch);
                         player.setHeadYaw(realHeadYaw);
@@ -89,6 +100,14 @@ public class ActionHandler {
 
                     nextAction.send(client, player);
                     
+                    // ЕСЛИ ТОЧНЫЙ РЕЖИМ: Ставим таймер на 1 тик.
+                    // Это значит, что следующее действие выполнится только через 1 тик.
+                    // Результат: [Действие] -> [Пустой тик] -> [Действие]
+                    if (accurateMode) {
+                        delayTimer = 1; 
+                        break; // Выходим из цикла, сделали 1 дело
+                    }
+                    
                 } else {
                     lookAction = null;
                     Printer.overrideRotation = false;
@@ -96,7 +115,6 @@ public class ActionHandler {
                 }
             }
         } finally {
-            // 3. Финальный сброс в конце тика (для рендера)
             if (wasModified) {
                 player.setYaw(realYaw);
                 player.setPitch(realPitch);
