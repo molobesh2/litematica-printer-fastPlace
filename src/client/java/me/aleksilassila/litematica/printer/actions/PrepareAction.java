@@ -1,5 +1,6 @@
 package me.aleksilassila.litematica.printer.actions;
 
+import fi.dy.masa.litematica.util.InventoryUtils;
 import me.aleksilassila.litematica.printer.Printer;
 import me.aleksilassila.litematica.printer.implementation.PrinterPlacementContext;
 import net.minecraft.client.MinecraftClient;
@@ -50,20 +51,23 @@ public class PrepareAction extends Action {
 
     @Override
     public void send(MinecraftClient client, ClientPlayerEntity player) {
-        ItemStack itemStack = context.getStack();
-        int slot = context.requiredItemSlot;
 
-        if (itemStack != null && client.interactionManager != null) {
+        ItemStack itemStack = this.context.getStack();
+        int slot = this.context.requiredItemSlot;
+
+        if (itemStack != null && !itemStack.isEmpty() && client.getNetworkHandler() != null) {
+            
             PlayerInventory inventory = player.getInventory();
             if (player.getAbilities().creativeMode) {
-                player.giveItemStack(itemStack);
+                this.addPickBlock(inventory, itemStack);
+                
                 client.interactionManager.clickCreativeStack(player.getStackInHand(Hand.MAIN_HAND),
                         36 + inventory.getSlotWithStack(player.getMainHandStack()));
             } else if (slot != -1) {
                 if (PlayerInventory.isValidHotbarIndex(slot)) {
                     inventory.setSelectedSlot(slot);
                 } else {
-                    client.interactionManager.clickCreativeStack(player.getInventory().getStack(slot), 36 + slot);
+                    InventoryUtils.setPickedItemToHand(slot, itemStack, client);
                 }
             }
         }
@@ -72,7 +76,6 @@ public class PrepareAction extends Action {
             float targetYaw = modifyYaw ? this.yaw : player.getYaw();
             float targetPitch = modifyPitch ? this.pitch : player.getPitch();
 
-            // Пакет на сервер
             PlayerMoveC2SPacket packet = new PlayerMoveC2SPacket.Full(
                 player.getX(), player.getY(), player.getZ(), 
                 targetYaw, targetPitch, 
@@ -80,7 +83,6 @@ public class PrepareAction extends Action {
             );
             player.networkHandler.sendPacket(packet);
 
-            // Обновляем Printer, но НЕ локального игрока
             Printer.overrideRotation = true;
             Printer.targetYaw = targetYaw;
             Printer.targetPitch = targetPitch;
@@ -103,6 +105,25 @@ public class PrepareAction extends Action {
         );
         player.networkHandler.sendPacket(new PlayerInputC2SPacket(player.input.playerInput));
     }
+
+private void addPickBlock(PlayerInventory inv, ItemStack stack) {
+    int slot = inv.getSlotWithStack(stack);
+    if (PlayerInventory.isValidHotbarIndex(slot)) { 
+        inv.removeStack(slot);
+    } else if (slot == -1) {
+        inv.removeStack(inv.getSwappableHotbarSlot());
+        int selectedSlotIndex = inv.getSelectedSlot(); 
+        if (!inv.getStack(selectedSlotIndex).isEmpty()) {
+            int empty = inv.getEmptySlot();
+            if (empty != -1) {
+                inv.setStack(empty, inv.getStack(selectedSlotIndex));
+            }
+        }
+        inv.setStack(selectedSlotIndex, stack);
+    } else {
+        inv.swapSlotWithHotbar(slot); // method_7365
+    }
+}
 
     @Override
     public String toString() {

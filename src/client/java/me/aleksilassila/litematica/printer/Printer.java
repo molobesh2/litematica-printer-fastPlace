@@ -10,7 +10,11 @@ import me.aleksilassila.litematica.printer.config.Hotkeys;
 import me.aleksilassila.litematica.printer.guides.Guide;
 import me.aleksilassila.litematica.printer.guides.Guides;
 import me.aleksilassila.litematica.printer.mixin.EntityAccessor;
+<<<<<<< HEAD
 import net.minecraft.block.BlockState; // ВОТ ЭТОТ ИМПОРТ БЫЛ НУЖЕН
+=======
+import net.minecraft.block.BlockState;
+>>>>>>> ea72656 (test rotation 2)
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.entity.player.PlayerAbilities;
@@ -98,14 +102,26 @@ public class Printer {
         float initialYaw = player.getYaw();
         float initialPitch = player.getPitch();
 
+        float initialYaw = player.getYaw();
+        float initialPitch = player.getPitch();
+
         findBlock:
         for (PlacementTask task : tasks) {
             Guide[] guides = interactionGuides.getInteractionGuides(task.state);
 
+<<<<<<< HEAD
             // Виртуальный поворот для RayTrace
             Vec3d rotation = calculateLookAt(task.pos);
             float lookYaw = (float) rotation.x;
             float lookPitch = (float) rotation.y;
+=======
+            // А) Рассчитываем идеальный взгляд на блок
+            Vec3d rotation = calculateLookAt(task.pos);
+            float lookYaw = (float) rotation.x;
+            float lookPitch = (float) rotation.y;
+
+            // Б) Применяем его к игроку, чтобы RayTrace сработал идеально
+>>>>>>> ea72656 (test rotation 2)
             applyRotation(lookYaw, lookPitch);
 
             try {
@@ -113,19 +129,35 @@ public class Printer {
                     if (guide.canExecute(player) && Configs.INTERACT_BLOCKS.getBooleanValue()) {
                         printDebug("Executing {} for {}", guide, task.state);
                         
+<<<<<<< HEAD
                         List<Action> actions = new ArrayList<>(guide.execute(player));
                         
                         // Если это первый блок в серии и он не имеет явного поворота,
                         // добавляем принудительный поворот
+=======
+                        // В) Генерируем действия (используя идеальный взгляд)
+                        List<Action> actions = new ArrayList<>(guide.execute(player));
+                        
+                        // Г) ПРОВЕРКА: Если Guide не создал поворот (потому что мы уже смотрим),
+                        // но блок требует точности - ВРУЧНУЮ добавляем действие поворота.
+>>>>>>> ea72656 (test rotation 2)
                         if (!actions.isEmpty() && !(actions.get(0) instanceof PrepareAction)) {
                             actions.add(0, new Action() {
                                 @Override
                                 public void send(MinecraftClient client, ClientPlayerEntity player) {
+<<<<<<< HEAD
+=======
+                                    // 1. Отправляем пакет на сервер
+>>>>>>> ea72656 (test rotation 2)
                                     player.networkHandler.sendPacket(new PlayerMoveC2SPacket.Full(
                                         player.getX(), player.getY(), player.getZ(),
                                         lookYaw, lookPitch,
                                         player.isOnGround(), player.horizontalCollision
                                     ));
+<<<<<<< HEAD
+=======
+                                    // 2. Обновляем Printer, чтобы ActionHandler повернул игрока локально
+>>>>>>> ea72656 (test rotation 2)
                                     Printer.overrideRotation = true;
                                     Printer.targetYaw = lookYaw;
                                     Printer.targetPitch = lookPitch;
@@ -143,6 +175,10 @@ public class Printer {
                     if (guide.skipOtherGuides()) break;
                 }
             } finally {
+<<<<<<< HEAD
+=======
+                // Д) Возвращаем реальный взгляд (обязательно!)
+>>>>>>> ea72656 (test rotation 2)
                 applyRotation(initialYaw, initialPitch);
             }
         }
@@ -150,6 +186,10 @@ public class Printer {
         return blocksFoundThisTick > 0;
     }
     
+<<<<<<< HEAD
+=======
+    // Вспомогательный метод для расчета углов
+>>>>>>> ea72656 (test rotation 2)
     private Vec3d calculateLookAt(BlockPos pos) {
         Vec3d eyePos = player.getEyePos();
         Vec3d targetCenter = Vec3d.ofCenter(pos);
@@ -162,6 +202,10 @@ public class Printer {
         return new Vec3d(yaw, pitch, 0);
     }
 
+<<<<<<< HEAD
+=======
+    // Вспомогательный метод для применения поворота (с Accessors)
+>>>>>>> ea72656 (test rotation 2)
     private void applyRotation(float yaw, float pitch) {
         player.setYaw(yaw);
         player.setPitch(pitch);
