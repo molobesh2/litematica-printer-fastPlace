@@ -11,6 +11,7 @@ import me.aleksilassila.litematica.printer.guides.Guide;
 import me.aleksilassila.litematica.printer.guides.Guides;
 import me.aleksilassila.litematica.printer.mixin.EntityAccessor;
 import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.entity.player.PlayerAbilities;
@@ -42,7 +43,6 @@ public class Printer {
     public final ActionHandler actionHandler;
     private final Guides interactionGuides = new Guides();
     
-    // Переменные для отслеживания поворота камеры
     private Direction lastHorizontalFacing = null;
     private int rotationCooldown = 0;
 
@@ -52,7 +52,6 @@ public class Printer {
     }
 
     public boolean onGameTick() {
-        // --- ОБРАБОТКА ХОТКЕЯ ---
         if (Hotkeys.TOGGLE_ACCURATE_MODE.getKeybind().isPressed()) {
             Configs.ACCURATE_MODE.setBooleanValue(!Configs.ACCURATE_MODE.getBooleanValue());
             MinecraftClient.getInstance().inGameHud.setOverlayMessage(
@@ -69,21 +68,16 @@ public class Printer {
         PlayerAbilities abilities = player.getAbilities();
         if (!abilities.allowModifyWorld) return false;
 
-        // --- ЛОГИКА ЗАДЕРЖКИ ПРИ ПОВОРОТЕ КАМЕРЫ ---
+        // Задержка при повороте
         Direction currentFacing = player.getHorizontalFacing();
-        
-        // Если сторона света изменилась (например, повернулись с Севера на Восток)
         if (lastHorizontalFacing != null && currentFacing != lastHorizontalFacing) {
-             rotationCooldown = 4; // Ставим паузу в 4 тика (200мс)
+             rotationCooldown = 4;
         }
         lastHorizontalFacing = currentFacing;
-
-        // Если кулдаун активен, пропускаем тик
         if (rotationCooldown > 0) {
             rotationCooldown--;
             return false;
         }
-        // --------------------------------------------
 
         boolean accurateMode = Configs.ACCURATE_MODE.getBooleanValue();
         int blocksPerTick;
@@ -95,11 +89,9 @@ public class Printer {
             blocksPerTick = Configs.BLOCKS_PER_TICK.getIntegerValue();
         }
 
-        // --- 1. Сбор задач ---
         List<BlockPos> rawPositions = getReachablePositions();
         List<PlacementTask> tasks = new ArrayList<>();
 
-        // Получаем настройки для фильтрации
         boolean restrictRotation = Configs.RESTRICT_ROTATION.getBooleanValue();
         
         for (BlockPos pos : rawPositions) {
@@ -108,35 +100,38 @@ public class Printer {
                 continue;
             }
 
-            // === ФИЛЬТРАЦИЯ ПО НАПРАВЛЕНИЮ (RESTRICT ROTATION) ===
+            BlockState targetState = state.targetState;
+
+            // --- ФИКС ДЛЯ НАБЛЮДАТЕЛЕЙ ---
+            if (targetState.isOf(Blocks.OBSERVER) && targetState.contains(Properties.FACING)) {
+                targetState = targetState.with(Properties.FACING, targetState.get(Properties.FACING).getOpposite());
+            }
+            // -----------------------------
+
             if (restrictRotation) {
-                if (!shouldPlaceWithCurrentFacing(state.targetState, currentFacing)) {
+                if (!shouldPlaceWithCurrentFacing(targetState, currentFacing)) {
                     continue;
                 }
             }
-            // ======================================================
 
-            tasks.add(new PlacementTask(pos, state));
+            tasks.add(new PlacementTask(pos, state, targetState));
         }
 
         if (tasks.isEmpty()) return false;
 
-        // --- 2. Сортировка ---
         tasks.sort(Comparator
-            .<PlacementTask, Boolean>comparing(task -> !isMatchingFacing(task.state.targetState, player.getHorizontalFacing()))
-            .thenComparingInt(task -> getDirectionId(task.state.targetState))
+            .<PlacementTask, Boolean>comparing(task -> !isMatchingFacing(task.targetState, player.getHorizontalFacing()))
+            .thenComparingInt(task -> getDirectionId(task.targetState))
             .thenComparingDouble(task -> player.squaredDistanceTo(Vec3d.ofCenter(task.pos)))
         );
 
-        // --- 3. Выполнение ---
         int blocksFoundThisTick = 0;
-        
         float initialYaw = player.getYaw();
         float initialPitch = player.getPitch();
 
         findBlock:
         for (PlacementTask task : tasks) {
-            Guide[] guides = interactionGuides.getInteractionGuides(task.state);
+            Guide[] guides = interactionGuides.getInteractionGuides(task.originalState);
 
             Vec3d rotation = calculateLookAt(task.pos);
             float lookYaw = (float) rotation.x;
@@ -146,7 +141,7 @@ public class Printer {
             try {
                 for (Guide guide : guides) {
                     if (guide.canExecute(player) && Configs.INTERACT_BLOCKS.getBooleanValue()) {
-                        printDebug("Executing {} for {}", guide, task.state);
+                        printDebug("Executing {} for {}", guide, task.originalState);
                         
                         List<Action> actions = new ArrayList<>(guide.execute(player));
                         
@@ -183,23 +178,18 @@ public class Printer {
         return blocksFoundThisTick > 0;
     }
     
-    // Метод проверки для Restrict Rotation
     private boolean shouldPlaceWithCurrentFacing(BlockState state, Direction currentFacing) {
         if (state.contains(Properties.HORIZONTAL_FACING)) {
             return state.get(Properties.HORIZONTAL_FACING) == currentFacing.getOpposite();
         }
         if (state.contains(Properties.FACING)) {
             Direction targetDir = state.get(Properties.FACING);
-            if (targetDir.getAxis().isVertical()) {
-                return true;
-            }
+            if (targetDir.getAxis().isVertical()) return true;
             return targetDir == currentFacing.getOpposite();
         }
         if (state.contains(Properties.AXIS)) {
             Direction.Axis targetAxis = state.get(Properties.AXIS);
-            if (targetAxis.isVertical()) {
-                return true;
-            }
+            if (targetAxis.isVertical()) return true;
             return targetAxis == currentFacing.getAxis();
         }
         return true;
@@ -241,7 +231,7 @@ public class Printer {
         return -1;
     }
 
-    private record PlacementTask(BlockPos pos, SchematicBlockState state) {}
+    private record PlacementTask(BlockPos pos, SchematicBlockState originalState, BlockState targetState) {}
 
     private List<BlockPos> getReachablePositions() {
         int maxReach = (int) Math.ceil(Configs.PRINTING_RANGE.getDoubleValue());
