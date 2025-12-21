@@ -10,8 +10,7 @@ import me.aleksilassila.litematica.printer.config.Hotkeys;
 import me.aleksilassila.litematica.printer.guides.Guide;
 import me.aleksilassila.litematica.printer.guides.Guides;
 import me.aleksilassila.litematica.printer.mixin.EntityAccessor;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
+import net.minecraft.block.*; // Импортируем классы блоков
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.entity.player.PlayerAbilities;
@@ -32,7 +31,6 @@ import java.util.List;
 public class Printer {
     public static final Logger logger = LogManager.getLogger(PrinterReference.MOD_ID);
     
-    // Глобальные переменные
     public static boolean overrideRotation = false;
     public static float targetYaw = 0f;
     public static float targetPitch = 0f;
@@ -68,7 +66,6 @@ public class Printer {
         PlayerAbilities abilities = player.getAbilities();
         if (!abilities.allowModifyWorld) return false;
 
-        // Задержка при повороте
         Direction currentFacing = player.getHorizontalFacing();
         if (lastHorizontalFacing != null && currentFacing != lastHorizontalFacing) {
              rotationCooldown = 4;
@@ -102,17 +99,20 @@ public class Printer {
 
             BlockState targetState = state.targetState;
 
-            // --- ФИКС ДЛЯ НАБЛЮДАТЕЛЕЙ ---
+            // Фикс для наблюдателей
             if (targetState.isOf(Blocks.OBSERVER) && targetState.contains(Properties.FACING)) {
                 targetState = targetState.with(Properties.FACING, targetState.get(Properties.FACING).getOpposite());
             }
-            // -----------------------------
 
-            if (restrictRotation) {
+            // === УМНАЯ ФИЛЬТРАЦИЯ (RESTRICT ROTATION) ===
+            // Ограничиваем только "капризные" блоки, которые зависят от взгляда игрока
+            if (restrictRotation && isStrictDirectionalBlock(targetState.getBlock())) {
                 if (!shouldPlaceWithCurrentFacing(targetState, currentFacing)) {
-                    continue;
+                    continue; // Пропускаем блок, если стоим неудобно
                 }
             }
+            // Остальные блоки (ступеньки, воронки, блоки без направления) проходят без проверки
+            // ============================================
 
             tasks.add(new PlacementTask(pos, state, targetState));
         }
@@ -178,12 +178,34 @@ public class Printer {
         return blocksFoundThisTick > 0;
     }
     
+    // === НОВЫЙ МЕТОД: Список блоков, требующих строгой ориентации на игрока ===
+    private boolean isStrictDirectionalBlock(Block block) {
+        return block instanceof PistonBlock ||          // Поршни (Липкий и Обычный)
+               block instanceof ObserverBlock ||        // Наблюдатель
+               block instanceof DispenserBlock ||       // Раздатчик и Выбрасыватель
+               block instanceof AbstractFurnaceBlock || // Печи, Плавильни, Коптильни
+               block instanceof ChestBlock ||           // Сундуки
+               block instanceof EnderChestBlock ||      // Эндер-сундук
+               block instanceof BarrelBlock ||          // Бочка
+               block instanceof CommandBlock ||         // Командные блоки
+               block instanceof BeehiveBlock ||         // Ульи
+               block instanceof CampfireBlock ||        // Костры
+               block instanceof LecternBlock ||         // Кафедра
+               block instanceof StonecutterBlock ||     // Камнерез
+               block instanceof LoomBlock ||            // Ткацкий станок
+               block instanceof CarvedPumpkinBlock ||   // Тыквы / Джеки
+               // Дополнительные проверки для блоков, наследующих поведение
+               (block != null && block.getClass().getSimpleName().contains("ShulkerBoxBlock")); // Шалкеры
+    }
+    // ==========================================================================
+
     private boolean shouldPlaceWithCurrentFacing(BlockState state, Direction currentFacing) {
         if (state.contains(Properties.HORIZONTAL_FACING)) {
             return state.get(Properties.HORIZONTAL_FACING) == currentFacing.getOpposite();
         }
         if (state.contains(Properties.FACING)) {
             Direction targetDir = state.get(Properties.FACING);
+            // Вертикальные игнорируем (разрешаем всегда)
             if (targetDir.getAxis().isVertical()) return true;
             return targetDir == currentFacing.getOpposite();
         }
