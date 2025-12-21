@@ -10,7 +10,7 @@ import me.aleksilassila.litematica.printer.config.Hotkeys;
 import me.aleksilassila.litematica.printer.guides.Guide;
 import me.aleksilassila.litematica.printer.guides.Guides;
 import me.aleksilassila.litematica.printer.mixin.EntityAccessor;
-import net.minecraft.block.BlockState; // ВОТ ЭТОТ ИМПОРТ БЫЛ НУЖЕН
+import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.entity.player.PlayerAbilities;
@@ -41,6 +41,10 @@ public class Printer {
     public final ClientPlayerEntity player;
     public final ActionHandler actionHandler;
     private final Guides interactionGuides = new Guides();
+    
+    // Переменные для отслеживания поворота камеры
+    private Direction lastHorizontalFacing = null;
+    private int rotationCooldown = 0;
 
     public Printer(@Nonnull MinecraftClient client, @Nonnull ClientPlayerEntity player) {
         this.player = player;
@@ -65,21 +69,53 @@ public class Printer {
         PlayerAbilities abilities = player.getAbilities();
         if (!abilities.allowModifyWorld) return false;
 
-        // --- ЛОГИКА КОЛИЧЕСТВА БЛОКОВ ---
-        boolean accurateMode = Configs.ACCURATE_MODE.getBooleanValue();
+        // --- ЛОГИКА ЗАДЕРЖКИ ПРИ ПОВОРОТЕ КАМЕРЫ ---
+        Direction currentFacing = player.getHorizontalFacing();
         
-        // В точном режиме 1 блок. Задержка в 1 тик управляется ActionHandler'ом.
-        int blocksPerTick = accurateMode ? 1 : Configs.BLOCKS_PER_TICK.getIntegerValue();
+        // Если сторона света изменилась (например, повернулись с Севера на Восток)
+        if (lastHorizontalFacing != null && currentFacing != lastHorizontalFacing) {
+             rotationCooldown = 4; // Ставим паузу в 4 тика (200мс)
+        }
+        lastHorizontalFacing = currentFacing;
+
+        // Если кулдаун активен, пропускаем тик
+        if (rotationCooldown > 0) {
+            rotationCooldown--;
+            return false;
+        }
+        // --------------------------------------------
+
+        boolean accurateMode = Configs.ACCURATE_MODE.getBooleanValue();
+        int blocksPerTick;
+
+        if (accurateMode) {
+            blocksPerTick = 1;
+            if (player.age % 2 != 0) return false;
+        } else {
+            blocksPerTick = Configs.BLOCKS_PER_TICK.getIntegerValue();
+        }
 
         // --- 1. Сбор задач ---
         List<BlockPos> rawPositions = getReachablePositions();
         List<PlacementTask> tasks = new ArrayList<>();
 
+        // Получаем настройки для фильтрации
+        boolean restrictRotation = Configs.RESTRICT_ROTATION.getBooleanValue();
+        
         for (BlockPos pos : rawPositions) {
             SchematicBlockState state = new SchematicBlockState(player.getWorld(), worldSchematic, pos);
             if (state.targetState.equals(state.currentState) || state.targetState.isAir()) {
                 continue;
             }
+
+            // === ФИЛЬТРАЦИЯ ПО НАПРАВЛЕНИЮ (RESTRICT ROTATION) ===
+            if (restrictRotation) {
+                if (!shouldPlaceWithCurrentFacing(state.targetState, currentFacing)) {
+                    continue;
+                }
+            }
+            // ======================================================
+
             tasks.add(new PlacementTask(pos, state));
         }
 
@@ -102,12 +138,9 @@ public class Printer {
         for (PlacementTask task : tasks) {
             Guide[] guides = interactionGuides.getInteractionGuides(task.state);
 
-
-            // Виртуальный поворот для RayTrace
             Vec3d rotation = calculateLookAt(task.pos);
             float lookYaw = (float) rotation.x;
             float lookPitch = (float) rotation.y;
-
             applyRotation(lookYaw, lookPitch);
 
             try {
@@ -116,12 +149,11 @@ public class Printer {
                         printDebug("Executing {} for {}", guide, task.state);
                         
                         List<Action> actions = new ArrayList<>(guide.execute(player));
-
+                        
                         if (!actions.isEmpty() && !(actions.get(0) instanceof PrepareAction)) {
                             actions.add(0, new Action() {
                                 @Override
                                 public void send(MinecraftClient client, ClientPlayerEntity player) {
-
                                     player.networkHandler.sendPacket(new PlayerMoveC2SPacket.Full(
                                         player.getX(), player.getY(), player.getZ(),
                                         lookYaw, lookPitch,
@@ -151,6 +183,28 @@ public class Printer {
         return blocksFoundThisTick > 0;
     }
     
+    // Метод проверки для Restrict Rotation
+    private boolean shouldPlaceWithCurrentFacing(BlockState state, Direction currentFacing) {
+        if (state.contains(Properties.HORIZONTAL_FACING)) {
+            return state.get(Properties.HORIZONTAL_FACING) == currentFacing.getOpposite();
+        }
+        if (state.contains(Properties.FACING)) {
+            Direction targetDir = state.get(Properties.FACING);
+            if (targetDir.getAxis().isVertical()) {
+                return true;
+            }
+            return targetDir == currentFacing.getOpposite();
+        }
+        if (state.contains(Properties.AXIS)) {
+            Direction.Axis targetAxis = state.get(Properties.AXIS);
+            if (targetAxis.isVertical()) {
+                return true;
+            }
+            return targetAxis == currentFacing.getAxis();
+        }
+        return true;
+    }
+
     private Vec3d calculateLookAt(BlockPos pos) {
         Vec3d eyePos = player.getEyePos();
         Vec3d targetCenter = Vec3d.ofCenter(pos);
@@ -171,8 +225,11 @@ public class Printer {
     }
 
     private boolean isMatchingFacing(BlockState state, Direction playerFacing) {
-        if (state.contains(Properties.HORIZONTAL_FACING)) return state.get(Properties.HORIZONTAL_FACING) == playerFacing;
-        if (state.contains(Properties.FACING)) return state.get(Properties.FACING) == playerFacing;
+        if (state.contains(Properties.HORIZONTAL_FACING)) return state.get(Properties.HORIZONTAL_FACING) == playerFacing.getOpposite();
+        if (state.contains(Properties.FACING)) {
+             Direction dir = state.get(Properties.FACING);
+             return dir.getAxis().isVertical() || dir == playerFacing.getOpposite();
+        }
         if (state.contains(Properties.AXIS)) return state.get(Properties.AXIS) == playerFacing.getAxis();
         return true; 
     }
