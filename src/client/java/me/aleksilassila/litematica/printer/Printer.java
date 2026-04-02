@@ -10,7 +10,7 @@ import me.aleksilassila.litematica.printer.config.Hotkeys;
 import me.aleksilassila.litematica.printer.guides.Guide;
 import me.aleksilassila.litematica.printer.guides.Guides;
 import me.aleksilassila.litematica.printer.mixin.EntityAccessor;
-import net.minecraft.block.*; // Импортируем классы блоков
+import net.minecraft.block.*;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.entity.player.PlayerAbilities;
@@ -20,6 +20,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.hit.BlockHitResult;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -31,6 +32,8 @@ import java.util.List;
 public class Printer {
     public static final Logger logger = LogManager.getLogger(PrinterReference.MOD_ID);
     
+    private static final java.util.Map<BlockPos, Long> PENDING_BLOCKS = new java.util.concurrent.ConcurrentHashMap<>();
+
     public static boolean overrideRotation = false;
     public static float targetYaw = 0f;
     public static float targetPitch = 0f;
@@ -50,25 +53,24 @@ public class Printer {
     }
 
     public boolean onGameTick() {
+        long now = System.currentTimeMillis();
+        PENDING_BLOCKS.entrySet().removeIf(entry -> now - entry.getValue() > 100);
+
         if (Hotkeys.TOGGLE_ACCURATE_MODE.getKeybind().isPressed()) {
             Configs.ACCURATE_MODE.setBooleanValue(!Configs.ACCURATE_MODE.getBooleanValue());
-            MinecraftClient.getInstance().inGameHud.setOverlayMessage(
-                net.minecraft.text.Text.of("Accurate Mode: " + (Configs.ACCURATE_MODE.getBooleanValue() ? "ON" : "OFF")),
-                false
-            );
         }
 
         WorldSchematic worldSchematic = SchematicWorldHandler.getSchematicWorld();
-        if (!actionHandler.acceptsActions()) return false;
-        if (worldSchematic == null) return false;
+        if (worldSchematic == null || !actionHandler.acceptsActions()) return false;
         if (!Configs.PRINT_MODE.getBooleanValue() && !Hotkeys.PRINT.getKeybind().isPressed()) return false;
 
         PlayerAbilities abilities = player.getAbilities();
         if (!abilities.allowModifyWorld) return false;
 
+        // Костыль для поворота (rotation cooldown)
         Direction currentFacing = player.getHorizontalFacing();
         if (lastHorizontalFacing != null && currentFacing != lastHorizontalFacing) {
-             rotationCooldown = 4;
+             rotationCooldown = 3;
         }
         lastHorizontalFacing = currentFacing;
         if (rotationCooldown > 0) {
@@ -76,128 +78,90 @@ public class Printer {
             return false;
         }
 
-        boolean accurateMode = Configs.ACCURATE_MODE.getBooleanValue();
-        int blocksPerTick;
-
-        if (accurateMode) {
-            blocksPerTick = 1;
+        int blocksFoundThisTick = 0;
+        int maxBlocks = Configs.BLOCKS_PER_TICK.getIntegerValue();
+        if (Configs.ACCURATE_MODE.getBooleanValue()) {
+            maxBlocks = 1;
             if (player.age % 2 != 0) return false;
-        } else {
-            blocksPerTick = Configs.BLOCKS_PER_TICK.getIntegerValue();
         }
-
-        List<BlockPos> rawPositions = getReachablePositions();
-        List<PlacementTask> tasks = new ArrayList<>();
 
         boolean restrictRotation = Configs.RESTRICT_ROTATION.getBooleanValue();
-        
-        for (BlockPos pos : rawPositions) {
-            SchematicBlockState state = new SchematicBlockState(player.getWorld(), worldSchematic, pos);
-            if (state.targetState.equals(state.currentState) || state.targetState.isAir()) {
-                continue;
-            }
 
-            BlockState targetState = state.targetState;
+        List<BlockPos> reachable = getReachablePositions();
+        reachable.sort(Comparator.comparingInt(BlockPos::getY).thenComparingDouble(p -> player.squaredDistanceTo(Vec3d.ofCenter(p))));
 
-            // Фикс для наблюдателей
-            if (targetState.isOf(Blocks.OBSERVER) && targetState.contains(Properties.FACING)) {
-                targetState = targetState.with(Properties.FACING, targetState.get(Properties.FACING).getOpposite());
-            }
-
-            // === УМНАЯ ФИЛЬТРАЦИЯ (RESTRICT ROTATION) ===
-            // Ограничиваем только "капризные" блоки, которые зависят от взгляда игрока
-            if (restrictRotation && isStrictDirectionalBlock(targetState.getBlock())) {
-                if (!shouldPlaceWithCurrentFacing(targetState, currentFacing)) {
-                    continue; // Пропускаем блок, если стоим неудобно
-                }
-            }
-            // Остальные блоки (ступеньки, воронки, блоки без направления) проходят без проверки
-            // ============================================
-
-            tasks.add(new PlacementTask(pos, state, targetState));
-        }
-
-        if (tasks.isEmpty()) return false;
-
-        tasks.sort(Comparator
-            .<PlacementTask, Boolean>comparing(task -> !isMatchingFacing(task.targetState, player.getHorizontalFacing()))
-            .thenComparingInt(task -> getDirectionId(task.targetState))
-            .thenComparingDouble(task -> player.squaredDistanceTo(Vec3d.ofCenter(task.pos)))
-        );
-
-        int blocksFoundThisTick = 0;
         float initialYaw = player.getYaw();
         float initialPitch = player.getPitch();
 
-        findBlock:
-        for (PlacementTask task : tasks) {
-            Guide[] guides = interactionGuides.getInteractionGuides(task.originalState);
+        for (BlockPos pos : reachable) {
+            if (blocksFoundThisTick >= maxBlocks) break;
+            if (PENDING_BLOCKS.containsKey(pos)) continue;
 
-            Vec3d rotation = calculateLookAt(task.pos);
-            float lookYaw = (float) rotation.x;
-            float lookPitch = (float) rotation.y;
-            applyRotation(lookYaw, lookPitch);
+            SchematicBlockState state = new SchematicBlockState(MinecraftClient.getInstance().world, worldSchematic, pos);
+            if (state.targetState.equals(state.currentState) || state.targetState.isAir()) continue;
 
-            try {
-                for (Guide guide : guides) {
-                    if (guide.canExecute(player) && Configs.INTERACT_BLOCKS.getBooleanValue()) {
-                        printDebug("Executing {} for {}", guide, task.originalState);
-                        
-                        List<Action> actions = new ArrayList<>(guide.execute(player));
-                        
-                        if (!actions.isEmpty() && !(actions.get(0) instanceof PrepareAction)) {
-                            actions.add(0, new Action() {
-                                @Override
-                                public void send(MinecraftClient client, ClientPlayerEntity player) {
-                                    player.networkHandler.sendPacket(new PlayerMoveC2SPacket.Full(
-                                        player.getX(), player.getY(), player.getZ(),
-                                        lookYaw, lookPitch,
-                                        player.isOnGround(), player.horizontalCollision
-                                    ));
-                                    Printer.overrideRotation = true;
-                                    Printer.targetYaw = lookYaw;
-                                    Printer.targetPitch = lookPitch;
-                                }
-                            });
-                        }
+            BlockState targetState = state.targetState;
 
-                        actionHandler.addActions(actions.toArray(Action[]::new));
-                        
-                        blocksFoundThisTick++;
-                        if (blocksFoundThisTick >= blocksPerTick) break findBlock;
-                        break; 
-                    }
-                    
-                    if (guide.skipOtherGuides()) break;
+            // === ФИКС НАПРАВЛЕНИЯ ВЗГЛЯДА (RESTRICT ROTATION) ===
+            if (restrictRotation && isStrictDirectionalBlock(targetState.getBlock())) {
+                if (!shouldPlaceWithCurrentFacing(targetState, currentFacing)) {
+                    continue; // Пропускаем блок, если игрок стоит не в ту сторону
                 }
-            } finally {
-                applyRotation(initialYaw, initialPitch);
+            }
+            // ====================================================
+
+            // AirPlace фикс
+            MinecraftClient.getInstance().crosshairTarget = new BlockHitResult(Vec3d.ofCenter(pos), Direction.UP, pos, false);
+
+            Guide[] guides = interactionGuides.getInteractionGuides(state);
+            for (Guide guide : guides) {
+                if (guide.canExecute(player)) {
+                    List<Action> actions = new ArrayList<>(guide.execute(player));
+                    if (actions.isEmpty()) continue;
+
+                    Vec3d rotation = calculateLookAt(pos);
+                    float lookYaw = (float) rotation.x;
+                    float lookPitch = (float) rotation.y;
+
+                    if (!(actions.get(0) instanceof PrepareAction)) {
+                        actions.add(0, new Action() {
+                            @Override
+                            public void send(MinecraftClient client, ClientPlayerEntity player) {
+                                player.networkHandler.sendPacket(new PlayerMoveC2SPacket.Full(
+                                    player.getX(), player.getY(), player.getZ(),
+                                    lookYaw, lookPitch,
+                                    player.isOnGround(), player.horizontalCollision
+                                ));
+                                Printer.overrideRotation = true;
+                                Printer.targetYaw = lookYaw;
+                                Printer.targetPitch = lookPitch;
+                            }
+                        });
+                    }
+
+                    applyRotation(lookYaw, lookPitch);
+                    actionHandler.addActions(actions.toArray(new Action[0]));
+                    PENDING_BLOCKS.put(pos, now);
+                    blocksFoundThisTick++;
+                    applyRotation(initialYaw, initialPitch);
+                    break;
+                }
             }
         }
-
         return blocksFoundThisTick > 0;
     }
-    
-    // === НОВЫЙ МЕТОД: Список блоков, требующих строгой ориентации на игрока ===
+
+    // === ЛОГИКА НАПРАВЛЕНИЙ ===
     private boolean isStrictDirectionalBlock(Block block) {
-        return block instanceof PistonBlock ||          // Поршни (Липкий и Обычный)
-               block instanceof ObserverBlock ||        // Наблюдатель
-               block instanceof DispenserBlock ||       // Раздатчик и Выбрасыватель
-               block instanceof AbstractFurnaceBlock || // Печи, Плавильни, Коптильни
-               block instanceof ChestBlock ||           // Сундуки
-               block instanceof EnderChestBlock ||      // Эндер-сундук
-               block instanceof BarrelBlock ||          // Бочка
-               block instanceof CommandBlock ||         // Командные блоки
-               block instanceof BeehiveBlock ||         // Ульи
-               block instanceof CampfireBlock ||        // Костры
-               block instanceof LecternBlock ||         // Кафедра
-               block instanceof StonecutterBlock ||     // Камнерез
-               block instanceof LoomBlock ||            // Ткацкий станок
-               block instanceof CarvedPumpkinBlock ||   // Тыквы / Джеки
-               // Дополнительные проверки для блоков, наследующих поведение
-               (block != null && block.getClass().getSimpleName().contains("ShulkerBoxBlock")); // Шалкеры
+        return block instanceof PistonBlock || 
+               block instanceof ObserverBlock || 
+               block instanceof DispenserBlock ||
+               block instanceof HopperBlock ||
+               block instanceof AbstractFurnaceBlock ||
+               block instanceof ShulkerBoxBlock ||
+               block instanceof BarrelBlock ||
+               block instanceof ChestBlock;
     }
-    // ==========================================================================
 
     private boolean shouldPlaceWithCurrentFacing(BlockState state, Direction currentFacing) {
         if (state.contains(Properties.HORIZONTAL_FACING)) {
@@ -205,17 +169,12 @@ public class Printer {
         }
         if (state.contains(Properties.FACING)) {
             Direction targetDir = state.get(Properties.FACING);
-            // Вертикальные игнорируем (разрешаем всегда)
             if (targetDir.getAxis().isVertical()) return true;
             return targetDir == currentFacing.getOpposite();
         }
-        if (state.contains(Properties.AXIS)) {
-            Direction.Axis targetAxis = state.get(Properties.AXIS);
-            if (targetAxis.isVertical()) return true;
-            return targetAxis == currentFacing.getAxis();
-        }
         return true;
     }
+    // ==========================
 
     private Vec3d calculateLookAt(BlockPos pos) {
         Vec3d eyePos = player.getEyePos();
@@ -236,36 +195,16 @@ public class Printer {
         ((EntityAccessor) player).setPrevPitch(pitch);
     }
 
-    private boolean isMatchingFacing(BlockState state, Direction playerFacing) {
-        if (state.contains(Properties.HORIZONTAL_FACING)) return state.get(Properties.HORIZONTAL_FACING) == playerFacing.getOpposite();
-        if (state.contains(Properties.FACING)) {
-             Direction dir = state.get(Properties.FACING);
-             return dir.getAxis().isVertical() || dir == playerFacing.getOpposite();
-        }
-        if (state.contains(Properties.AXIS)) return state.get(Properties.AXIS) == playerFacing.getAxis();
-        return true; 
-    }
-
-    private int getDirectionId(BlockState state) {
-        if (state.contains(Properties.HORIZONTAL_FACING)) return state.get(Properties.HORIZONTAL_FACING).ordinal();
-        if (state.contains(Properties.FACING)) return state.get(Properties.FACING).ordinal();
-        if (state.contains(Properties.AXIS)) return state.get(Properties.AXIS).ordinal();
-        return -1;
-    }
-
-    private record PlacementTask(BlockPos pos, SchematicBlockState originalState, BlockState targetState) {}
-
     private List<BlockPos> getReachablePositions() {
         int maxReach = (int) Math.ceil(Configs.PRINTING_RANGE.getDoubleValue());
         double maxReachSquared = MathHelper.square(Configs.PRINTING_RANGE.getDoubleValue());
-        ArrayList<BlockPos> positions = new ArrayList<>();
-
-        for (int y = -maxReach; y < maxReach + 1; y++) {
-            for (int x = -maxReach; x < maxReach + 1; x++) {
-                for (int z = -maxReach; z < maxReach + 1; z++) {
-                    BlockPos blockPos = player.getBlockPos().north(x).west(z).up(y);
+        List<BlockPos> positions = new ArrayList<>();
+        for (int y = -maxReach; y <= maxReach; y++) {
+            for (int x = -maxReach; x <= maxReach; x++) {
+                for (int z = -maxReach; z <= maxReach; z++) {
+                    BlockPos blockPos = player.getBlockPos().add(x, y, z);
                     if (!DataManager.getRenderLayerRange().isPositionWithinRange(blockPos)) continue;
-                    if (this.player.getEyePos().squaredDistanceTo(Vec3d.ofCenter(blockPos)) > maxReachSquared) continue;
+                    if (player.getEyePos().squaredDistanceTo(Vec3d.ofCenter(blockPos)) > maxReachSquared) continue;
                     positions.add(blockPos);
                 }
             }

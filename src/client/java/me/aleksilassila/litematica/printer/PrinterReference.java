@@ -9,6 +9,6 @@ public class PrinterReference {
     public static final String MOD_KEY = "litematica-printer"; // For lang files since they shouldn't use a '_'
     public static final String MOD_NAME = "Litematica Printer";
     public static final String MOD_VERSION = StringUtils.getModVersionString(MOD_ID);
-    public static final String MC_VERSION = SharedConstants.VERSION_NAME;
+    public static final String MC_VERSION = "1.21.11";
     public static final String MOD_STRING = MOD_ID + "-" + MC_VERSION + "-" + MOD_VERSION;
 }

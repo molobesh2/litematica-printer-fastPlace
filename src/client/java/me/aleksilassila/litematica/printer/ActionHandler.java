@@ -133,11 +133,7 @@ public class ActionHandler {
         return actionQueue.isEmpty();
     }
 
-    public void addActions(Action... actions) {
-        if (!acceptsActions()) return;
-        for (Action action : actions) {
-            if (action instanceof PrepareAction) lookAction = (PrepareAction) action;
-        }
-        actionQueue.addAll(List.of(actions));
-    }
+public void addActions(Action... actions) {
+    java.util.Collections.addAll(this.actionQueue, actions); // или как называется ваша очередь
+}
 }
