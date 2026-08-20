@@ -13,32 +13,35 @@ public class Configs {
     private static final String GENERIC_KEY = PrinterReference.MOD_KEY + ".config.generic";
 
     // Configs settings
-    public static final ConfigInteger PRINTING_INTERVAL = new ConfigInteger("printingInterval", 1, 1, 40).apply(GENERIC_KEY);
-    public static final ConfigInteger BLOCKS_PER_TICK = new ConfigInteger("blocksPerTick", 1, 1, 100).apply(GENERIC_KEY);
-    public static final ConfigBoolean ACCURATE_MODE = new ConfigBoolean("accurateMode", false, "Slow but 100% precise placement").apply(GENERIC_KEY);
-    
-    // НОВАЯ НАСТРОЙКА: Ограничение вращения
-    public static final ConfigBoolean RESTRICT_ROTATION = new ConfigBoolean("restrictRotation", false, "Only place blocks matching current horizontal facing").apply(GENERIC_KEY);
-    
+    public static final ConfigInteger PRINTING_INTERVAL = new ConfigInteger("printingInterval", 12, 1, 40).apply(GENERIC_KEY);
     public static final ConfigDouble PRINTING_RANGE = new ConfigDouble("printingRange", 5, 2.5, 5).apply(GENERIC_KEY);
     public static final ConfigBoolean PRINT_MODE = new ConfigBoolean("printingMode", false).apply(GENERIC_KEY);
     public static final ConfigBoolean PRINT_DEBUG = new ConfigBoolean("printingDebug", false).apply(GENERIC_KEY);
     public static final ConfigBoolean REPLACE_FLUIDS_SOURCE_BLOCKS = new ConfigBoolean("replaceFluidSourceBlocks", true).apply(GENERIC_KEY);
     public static final ConfigBoolean STRIP_LOGS = new ConfigBoolean("stripLogs", true).apply(GENERIC_KEY);
     public static final ConfigBoolean INTERACT_BLOCKS = new ConfigBoolean("interactBlocks", true).apply(GENERIC_KEY);
+    
+    // FastPlace настройки (сохранены из текущей версии по запросу пользователя)
+    public static final ConfigInteger BLOCKS_PER_TICK = new ConfigInteger("blocksPerTick", 1, 1, 10, "Number of blocks to place per tick").apply(GENERIC_KEY);
+    public static final ConfigBoolean RESTRICT_ROTATION = new ConfigBoolean("restrictRotation", true, "Restrict rotation to valid placement angles").apply(GENERIC_KEY);
+    
+    // Настройки из репозитория sakura-ryoko/litematica-printer 26.2
+    public static final ConfigBoolean PRINT_IN_AIR = new ConfigBoolean("printInAir", false, "Allow placing blocks directly in air without support").apply(GENERIC_KEY);
+    public static final ConfigBoolean ROTATE = new ConfigBoolean("rotate", true, "Automatically rotate camera for block placement").apply(GENERIC_KEY);
 
     public static ImmutableList<IConfigBase> getConfigList() {
         List<IConfigBase> list = new java.util.ArrayList<>(fi.dy.masa.litematica.config.Configs.Generic.OPTIONS);
         list.add(PRINT_MODE);
-        list.add(ACCURATE_MODE);
-        list.add(RESTRICT_ROTATION); // Добавляем в меню
         list.add(PRINT_DEBUG);
         list.add(PRINTING_INTERVAL);
-        list.add(BLOCKS_PER_TICK);
         list.add(PRINTING_RANGE);
         list.add(REPLACE_FLUIDS_SOURCE_BLOCKS);
         list.add(STRIP_LOGS);
         list.add(INTERACT_BLOCKS);
+        list.add(BLOCKS_PER_TICK);         // FastPlace: блоки за тик
+        list.add(RESTRICT_ROTATION);       // FastPlace: ограничение вращения
+        list.add(PRINT_IN_AIR);            // AirPlace: размещение в воздухе
+        list.add(ROTATE);                  // AutoRotate: вращение камеры
 
         return ImmutableList.copyOf(list);
     }

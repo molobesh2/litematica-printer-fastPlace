@@ -13,18 +13,23 @@ base {
 repositories {
     maven { url = "https://maven.fabricmc.net/" }
     maven { url = "https://jitpack.io" }
+    maven {
+        url = "https://masa.dy.fi/maven"
+        content { includeGroupAndSubgroups("fi.dy.masa") }
+    }
 }
 
 dependencies {
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
-    mappings "net.fabricmc:yarn:${project.mappings_version}:v2"
+    mappings loom.layered() {
+        officialMojangMappings()
+    }
     modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
-    // ПОДКЛЮЧЕНИЕ ЛОКАЛЬНЫХ ФАЙЛОВ
-    modImplementation files("libs/litematica-fabric-1.21.11-0.26.2.jar")
-    modImplementation files("libs/malilib-fabric-1.21.11-0.27.7.jar")
-    modImplementation files("libs/conditional-mixin-fabric-0.6.4.jar")
+    // Litematica и Malilib из Maven репозитория masa
+    modImplementation "fi.dy.masa.litematica:litematica-fabric-${project.minecraft_version_out}:${project.litematica_version}"
+    modImplementation "fi.dy.masa.malilib:malilib-fabric-${project.minecraft_version_out}:${project.malilib_version}"
 
     implementation "com.google.code.findbugs:jsr305:3.0.2"
 }
@@ -32,7 +37,7 @@ dependencies {
 loom {
     splitEnvironmentSourceSets()
     mods {
-        "modid" {
+        "litematica_printer" {
             sourceSet sourceSets.main
             sourceSet sourceSets.client
         }

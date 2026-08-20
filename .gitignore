@@ -1,42 +1,86 @@
-# gradle
-
+```
+# Gradle
 .gradle/
 build/
-out/
-classes/
+target/
 
-# eclipse
+# Dependencies
+libs/
+lib/
 
-*.launch
+# Logs
+*.log
 
-# idea
-
+# IDE
 .idea/
+.vscode/
 *.iml
 *.ipr
 *.iws
 
-# vscode
+# OS
+.DS_Store
+Thumbs.db
 
-.settings/
-.vscode/
+# Temporary files
+*.tmp
+*.temp
+*.bak
+
+# Environment
+.env
+.env.local
+*.env.*
+
+# Coverage
+coverage/
+htmlcov/
+.coverage
+
+# Python (if present)
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg-info/
+.eggs/
+
+# Node.js (if present)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Java build tools
 bin/
-.classpath
-.project
+out/
+*.class
+*.jar
+*.war
+*.ear
 
-# macos
-
-*.DS_Store
-
-# fabric
-
-run/
-
-# java
-
-hs_err_*.log
-replay_*.log
-*.hprof
-*.jfr
-
-/.github
+# Compressed files
+*.zip
+*.tar.gz
+*.tar.bz2
+*.tar.xz
+*.gz
+*.bz2
+*.xz
+*.7z
+*.rar
+*.tgz
+*.tar
+*.Z
+*.lz
+*.lzo
+*.lz4
+*.lzh
+*.cab
+*.arj
+*.rpm
+*.deb
+*.zst
+```
