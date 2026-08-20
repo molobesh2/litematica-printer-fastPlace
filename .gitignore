@@ -1,18 +1,22 @@
 ```
-# Gradle
-.gradle/
+# Build artifacts
 build/
-!build.gradle
-
-# Dependencies
-libs/
-lib/
-
-# Compiled files
-*.class
+dist/
 *.jar
 *.war
-*.ear
+*.class
+
+# Dependencies
+.gradle/
+node_modules/
+lib/
+
+# IDE files
+.vscode/
+.idea/
+*.iml
+*.ipr
+*.iws
 
 # Logs
 *.log
@@ -20,33 +24,13 @@ lib/
 # Environment
 .env
 .env.local
-.env.*
+*.env.*
 
-# Editors
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# OS
+# OS files
 .DS_Store
 Thumbs.db
 
-# Coverage
-coverage/
-htmlcov/
-.coverage
-
-# Python (if applicable)
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.venv/
-venv/
-.Python
-pip-log.txt
-pip-delete-this-directory.txt
-.pytest_cache/
-.mypy_cache/
+# Temporary files
+*.tmp
+*.temp
 ```

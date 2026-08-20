@@ -30,14 +30,11 @@ dependencies {
     implementation "net.fabricmc:fabric-loader:${project.fabric_loader_version}"
     implementation "com.google.code.findbugs:jsr305:3.0.2"
 
-    // Используем ТОЛЬКО локальные библиотеки из папки libs для избежания проблем с сетью
-    implementation fileTree(dir: 'libs', include: ['*.jar'])
-    
-    // Закомментированы удаленные зависимости которые могут вызывать таймауты
-    // implementation "fi.dy.masa.malilib:malilib-fabric-${project.minecraft_version_out}:${project.malilib_version}"
-    // implementation "fi.dy.masa.litematica:litematica-fabric-${project.minecraft_version_out}:${project.litematica_version}"
-    // compileOnly "me.fallenbreath:conditional-mixin-fabric:${project.conditional_mixin_version}"
-    // compileOnly "com.terraformersmc:modmenu:${project.mod_menu_version}"
+    // Локальные библиотеки из папки libs
+    implementation files('libs/litematica-fabric-26.2-0.28.4.jar')
+    implementation files('libs/malilib-fabric-26.2-0.29.3.jar')
+    compileOnly files('libs/conditional-mixin-fabric-0.6.4.jar')
+    compileOnly files('libs/modmenu-20.0.1.jar')
 
     api fabricApi.module("fabric-api-base", project.fabric_api_version)
 }
