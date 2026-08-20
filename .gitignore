@@ -1,14 +1,52 @@
 ```
-# Dependencies
+# Gradle
 .gradle/
 build/
+!build.gradle
 
-# Logs and temp files
+# Dependencies
+libs/
+lib/
+
+# Compiled files
+*.class
+*.jar
+*.war
+*.ear
+
+# Logs
 *.log
-*.tmp
 
 # Environment
 .env
 .env.local
-*.env.*
+.env.*
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Coverage
+coverage/
+htmlcov/
+.coverage
+
+# Python (if applicable)
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
+.pytest_cache/
+.mypy_cache/
 ```
