@@ -9,13 +9,13 @@ import me.aleksilassila.litematica.printer.config.Configs;
 import me.aleksilassila.litematica.printer.config.Hotkeys;
 import me.aleksilassila.litematica.printer.guides.Guide;
 import me.aleksilassila.litematica.printer.guides.Guides;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.network.ClientPlayerEntity;
-import net.minecraft.entity.player.PlayerAbilities;
-import net.minecraft.util.hit.BlockHitResult;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.core.BlockPos;
+import net.minecraft.util.Mth;
+import net.minecraft.world.entity.player.Abilities;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.Vec3;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -26,11 +26,11 @@ import java.util.List;
 public class Printer {
     public static final Logger logger = LogManager.getLogger(PrinterReference.MOD_ID);
     @Nonnull
-    public final ClientPlayerEntity player;
+    public final LocalPlayer player;
     public final ActionHandler actionHandler;
     private final Guides interactionGuides = new Guides();
 
-    public Printer(@Nonnull MinecraftClient client, @Nonnull ClientPlayerEntity player) {
+    public Printer(@Nonnull Minecraft client, @Nonnull LocalPlayer player) {
         this.player = player;
         this.actionHandler = new ActionHandler(client, player);
     }
@@ -50,15 +50,15 @@ public class Printer {
             return false;
         }
 
-        PlayerAbilities abilities = player.getAbilities();
-        if (!abilities.allowModifyWorld) {
+        Abilities abilities = player.getAbilities();
+        if (!abilities.mayBuild) {
             return false;
         }
 
         List<BlockPos> positions = getReachablePositions();
         findBlock:
         for (BlockPos position : positions) {
-            SchematicBlockState state = new SchematicBlockState(player.getWorld(), worldSchematic, position);
+            SchematicBlockState state = new SchematicBlockState(player.level(), worldSchematic, position);
             if (state.targetState.equals(state.currentState) || state.targetState.isAir()) {
                 continue;
             }
@@ -87,19 +87,19 @@ public class Printer {
 
     private List<BlockPos> getReachablePositions() {
         int maxReach = (int) Math.ceil(Configs.PRINTING_RANGE.getDoubleValue());
-        double maxReachSquared = MathHelper.square(Configs.PRINTING_RANGE.getDoubleValue());
+        double maxReachSquared = Mth.square(Configs.PRINTING_RANGE.getDoubleValue());
 
         ArrayList<BlockPos> positions = new ArrayList<>();
 
         for (int y = -maxReach; y < maxReach + 1; y++) {
             for (int x = -maxReach; x < maxReach + 1; x++) {
                 for (int z = -maxReach; z < maxReach + 1; z++) {
-                    BlockPos blockPos = player.getBlockPos().north(x).west(z).up(y);
+                    BlockPos blockPos = player.blockPosition().north(x).west(z).above(y);
 
                     if (!DataManager.getRenderLayerRange().isPositionWithinRange(blockPos)) {
                         continue;
                     }
-                    if (this.player.getEyePos().squaredDistanceTo(Vec3d.ofCenter(blockPos)) > maxReachSquared) {
+                    if (this.player.getEyePosition().distanceToSqr(Vec3.atCenterOf(blockPos)) > maxReachSquared) {
                         continue;
                     }
 
@@ -111,14 +111,14 @@ public class Printer {
         return positions.stream()
                 .filter(p ->
                 {
-                    Vec3d vec = Vec3d.ofCenter(p);
-                    return this.player.getPos().squaredDistanceTo(vec) > 1
-                            && this.player.getEyePos().squaredDistanceTo(vec) > 1;
+                    Vec3 vec = Vec3.atCenterOf(p);
+                    return this.player.position().distanceToSqr(vec) > 1
+                            && this.player.getEyePosition().distanceToSqr(vec) > 1;
                 })
                 .sorted((a, b) ->
                 {
-                    double aDistance = this.player.getPos().squaredDistanceTo(Vec3d.ofCenter(a));
-                    double bDistance = this.player.getPos().squaredDistanceTo(Vec3d.ofCenter(b));
+                    double aDistance = this.player.position().distanceToSqr(Vec3.atCenterOf(a));
+                    double bDistance = this.player.position().distanceToSqr(Vec3.atCenterOf(b));
                     return Double.compare(aDistance, bDistance);
                 }).toList();
     }
