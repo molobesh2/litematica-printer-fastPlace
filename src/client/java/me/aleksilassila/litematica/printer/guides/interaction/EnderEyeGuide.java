@@ -1,10 +1,10 @@
 package me.aleksilassila.litematica.printer.guides.interaction;
 
 import me.aleksilassila.litematica.printer.SchematicBlockState;
-import net.minecraft.client.network.ClientPlayerEntity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.state.property.Properties;
+import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.level.block.state.properties.Properties;
 
 import javax.annotation.Nonnull;
 import java.util.Collections;
@@ -16,7 +16,7 @@ public class EnderEyeGuide extends InteractionGuide {
     }
 
     @Override
-    public boolean canExecute(ClientPlayerEntity player) {
+    public boolean canExecute(LocalPlayer player) {
         if (!super.canExecute(player))
             return false;
 

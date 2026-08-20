@@ -6,10 +6,10 @@ import me.aleksilassila.litematica.printer.config.Configs;
 import me.aleksilassila.litematica.printer.implementation.PrinterPlacementContext;
 import net.minecraft.block.SlabBlock;
 import net.minecraft.block.enums.SlabType;
-import net.minecraft.client.network.ClientPlayerEntity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.hit.BlockHitResult;
-import net.minecraft.util.math.Direction;
+import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.core.Direction;
 import net.minecraft.util.math.Vec3d;
 
 import javax.annotation.Nullable;
@@ -116,7 +116,7 @@ public class GeneralPlacementGuide extends PlacementGuide {
     }
 
     @Nullable
-    public PrinterPlacementContext getPlacementContext(ClientPlayerEntity player) {
+    public PrinterPlacementContext getPlacementContext(LocalPlayer player) {
         try {
             Optional<Direction> validSide = getValidSide(state);
             Optional<Vec3d> hitVec = getHitVector(state);

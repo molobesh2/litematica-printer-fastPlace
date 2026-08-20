@@ -1,9 +1,9 @@
 package me.aleksilassila.litematica.printer.guides.placement;
 
 import me.aleksilassila.litematica.printer.SchematicBlockState;
-import net.minecraft.block.*;
-import net.minecraft.state.property.Properties;
-import net.minecraft.state.property.Property;
+import net.minecraft.world.level.block.*;
+import net.minecraft.world.level.block.state.properties.Properties;
+import net.minecraft.world.level.block.state.properties.Property;
 
 public class PropertySpecificGuesserGuide extends GuesserGuide {
     protected static Property<?>[] ignoredProperties = new Property[]{

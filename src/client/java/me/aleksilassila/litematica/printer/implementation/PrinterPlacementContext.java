@@ -1,31 +1,31 @@
 package me.aleksilassila.litematica.printer.implementation;
 
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.ItemPlacementContext;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.Hand;
-import net.minecraft.util.hit.BlockHitResult;
-import net.minecraft.util.math.Direction;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.context.BlockPlaceContext;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.core.Direction;
 
 import javax.annotation.Nullable;
 
-public class PrinterPlacementContext extends ItemPlacementContext
+public class PrinterPlacementContext extends BlockPlaceContext
 {
     public final @Nullable Direction lookDirection;
     public final boolean shouldSneak;
     public final BlockHitResult hitResult;
     public final int requiredItemSlot;
 
-    public PrinterPlacementContext(PlayerEntity player, BlockHitResult hitResult, ItemStack requiredItem,
+    public PrinterPlacementContext(Player player, BlockHitResult hitResult, ItemStack requiredItem,
                                    int requiredItemSlot)
     {
         this(player, hitResult, requiredItem, requiredItemSlot, null, false);
     }
 
-    public PrinterPlacementContext(PlayerEntity player, BlockHitResult hitResult, ItemStack requiredItem,
+    public PrinterPlacementContext(Player player, BlockHitResult hitResult, ItemStack requiredItem,
                                    int requiredItemSlot, @Nullable Direction lookDirection, boolean requiresSneaking)
     {
-        super(player, Hand.MAIN_HAND, requiredItem, hitResult);
+        super(player, InteractionHand.MAIN_HAND, requiredItem, hitResult);
 
         this.lookDirection = lookDirection;
         this.shouldSneak = requiresSneaking;

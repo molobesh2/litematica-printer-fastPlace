@@ -3,13 +3,13 @@ package me.aleksilassila.litematica.printer.guides;
 import me.aleksilassila.litematica.printer.SchematicBlockState;
 import me.aleksilassila.litematica.printer.actions.Action;
 import me.aleksilassila.litematica.printer.implementation.BlockHelperImpl;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.CoralBlock;
-import net.minecraft.client.network.ClientPlayerEntity;
-import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.item.ItemStack;
-import net.minecraft.state.property.Properties;
-import net.minecraft.state.property.Property;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.CoralBlock;
+import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.state.properties.Properties;
+import net.minecraft.world.level.block.state.properties.Property;
 
 import javax.annotation.Nonnull;
 import java.util.List;
@@ -26,12 +26,12 @@ abstract public class Guide extends BlockHelperImpl {
         this.targetState = state.targetState;
     }
 
-    protected boolean playerHasRightItem(ClientPlayerEntity player) {
+    protected boolean playerHasRightItem(LocalPlayer player) {
         return getRequiredItemStackSlot(player) != -1;
     }
 
-    protected int getSlotWithItem(ClientPlayerEntity player, ItemStack itemStack) {
-        PlayerInventory inventory = player.getInventory();
+    protected int getSlotWithItem(LocalPlayer player, ItemStack itemStack) {
+        Inventory inventory = player.getInventory();
 
         for (int i = 0; i < inventory.MAIN_SIZE; ++i) { //
             ItemStack stackInSlot = inventory.getStack(i);
@@ -43,7 +43,7 @@ abstract public class Guide extends BlockHelperImpl {
         return -1;
     }
 
-    protected int getRequiredItemStackSlot(ClientPlayerEntity player) {
+    protected int getRequiredItemStackSlot(LocalPlayer player) {
         if (player.getAbilities().creativeMode) {
             return player.getInventory().getSelectedSlot();
         }
@@ -52,7 +52,7 @@ abstract public class Guide extends BlockHelperImpl {
         return requiredItem.map(itemStack -> getSlotWithItem(player, itemStack)).orElse(-1);
     }
 
-    public boolean canExecute(ClientPlayerEntity player) {
+    public boolean canExecute(LocalPlayer player) {
         if (!playerHasRightItem(player)) {
             return false;
         }
@@ -63,7 +63,7 @@ abstract public class Guide extends BlockHelperImpl {
         return !statesEqual(targetState, currentState);
     }
 
-    abstract public @Nonnull List<Action> execute(ClientPlayerEntity player);
+    abstract public @Nonnull List<Action> execute(LocalPlayer player);
 
     abstract protected @Nonnull List<ItemStack> getRequiredItems();
 
@@ -71,7 +71,7 @@ abstract public class Guide extends BlockHelperImpl {
      * Returns the first required item that the player has access to,
      * or empty if the items are inaccessible.
      */
-    protected Optional<ItemStack> getRequiredItem(ClientPlayerEntity player) {
+    protected Optional<ItemStack> getRequiredItem(LocalPlayer player) {
         List<ItemStack> requiredItems = getRequiredItems();
 
         for (ItemStack requiredItem : requiredItems) {

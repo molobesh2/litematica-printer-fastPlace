@@ -4,10 +4,10 @@ import me.aleksilassila.litematica.printer.SchematicBlockState;
 import me.aleksilassila.litematica.printer.config.Configs;
 import me.aleksilassila.litematica.printer.mixin.AxeItemAccessor;
 import net.minecraft.block.Block;
-import net.minecraft.client.network.ClientPlayerEntity;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
+import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 
 import javax.annotation.Nonnull;
 import java.util.Arrays;
@@ -31,7 +31,7 @@ public class LogStrippingGuide extends InteractionGuide {
     }
 
     @Override
-    public boolean canExecute(ClientPlayerEntity player) {
+    public boolean canExecute(LocalPlayer player) {
         if (!Configs.STRIP_LOGS.getBooleanValue())
             return false;
 

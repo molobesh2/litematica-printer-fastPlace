@@ -8,13 +8,13 @@ import me.aleksilassila.litematica.printer.config.Configs;
 import me.aleksilassila.litematica.printer.guides.Guide;
 import me.aleksilassila.litematica.printer.implementation.PrinterPlacementContext;
 import me.aleksilassila.litematica.printer.implementation.actions.InteractActionImpl;
-import net.minecraft.block.*;
-import net.minecraft.client.network.ClientPlayerEntity;
+import net.minecraft.world.level.block.*;
+import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.item.BlockItem;
-import net.minecraft.item.ItemPlacementContext;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.item.context.BlockPlaceContext;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.core.BlockPos;
 import net.minecraft.util.shape.VoxelShape;
 import net.minecraft.util.shape.VoxelShapes;
 import net.minecraft.world.World;
@@ -38,7 +38,7 @@ abstract public class PlacementGuide extends Guide {
         return new ItemStack(state.getBlock().asItem());
     }
 
-    protected Optional<Block> getRequiredItemAsBlock(ClientPlayerEntity player) {
+    protected Optional<Block> getRequiredItemAsBlock(LocalPlayer player) {
         Optional<ItemStack> requiredItem = getRequiredItem(player);
 
         if (requiredItem.isEmpty()) {
@@ -61,10 +61,10 @@ abstract public class PlacementGuide extends Guide {
     abstract protected boolean getUseShift(SchematicBlockState state);
 
     @Nullable
-    abstract public PrinterPlacementContext getPlacementContext(ClientPlayerEntity player);
+    abstract public PrinterPlacementContext getPlacementContext(LocalPlayer player);
 
     @Override
-    public boolean canExecute(ClientPlayerEntity player) {
+    public boolean canExecute(LocalPlayer player) {
         if (!super.canExecute(player))
             return false;
 
@@ -72,7 +72,7 @@ abstract public class PlacementGuide extends Guide {
         if (requiredItems.isEmpty() || requiredItems.stream().allMatch(i -> i.isOf(Items.AIR)))
             return false;
 
-        ItemPlacementContext ctx = getPlacementContext(player);
+        BlockPlaceContext ctx = getPlacementContext(player);
         if (ctx == null || !ctx.canPlace()) return false;
 //        if (!state.currentState.getMaterial().isReplaceable()) return false;
         if (!Configs.REPLACE_FLUIDS_SOURCE_BLOCKS.getBooleanValue()
@@ -93,7 +93,7 @@ abstract public class PlacementGuide extends Guide {
     }
 
     @Override
-    public @Nonnull List<Action> execute(ClientPlayerEntity player) {
+    public @Nonnull List<Action> execute(LocalPlayer player) {
         List<Action> actions = new ArrayList<>();
         PrinterPlacementContext ctx = getPlacementContext(player);
 

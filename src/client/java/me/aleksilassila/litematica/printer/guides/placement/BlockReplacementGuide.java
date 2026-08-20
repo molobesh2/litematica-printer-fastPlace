@@ -8,12 +8,12 @@ import net.minecraft.block.SeaPickleBlock;
 import net.minecraft.block.SlabBlock;
 import net.minecraft.block.SnowBlock;
 import net.minecraft.block.enums.SlabType;
-import net.minecraft.client.network.ClientPlayerEntity;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
+import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.state.property.IntProperty;
-import net.minecraft.util.hit.BlockHitResult;
-import net.minecraft.util.math.Direction;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.core.Direction;
 import net.minecraft.util.math.Vec3d;
 
 import javax.annotation.Nullable;
@@ -52,7 +52,7 @@ public class BlockReplacementGuide extends PlacementGuide {
     }
 
     @Override
-    public @Nullable PrinterPlacementContext getPlacementContext(ClientPlayerEntity player) {
+    public @Nullable PrinterPlacementContext getPlacementContext(LocalPlayer player) {
         Optional<ItemStack> requiredItem = getRequiredItem(player);
         int slot = getRequiredItemStackSlot(player);
         if (requiredItem.isEmpty() || slot == -1) return null;
@@ -62,7 +62,7 @@ public class BlockReplacementGuide extends PlacementGuide {
     }
 
     @Override
-    public boolean canExecute(ClientPlayerEntity player) {
+    public boolean canExecute(LocalPlayer player) {
         if (Guide.getProperty(targetState, SlabBlock.TYPE).orElse(null) == SlabType.DOUBLE && Guide.getProperty(currentState, SlabBlock.TYPE).orElse(SlabType.DOUBLE) != SlabType.DOUBLE) {
             return super.canExecute(player);
         }

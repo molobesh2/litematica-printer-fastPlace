@@ -5,9 +5,9 @@ import me.aleksilassila.litematica.printer.config.Configs;
 import me.aleksilassila.litematica.printer.guides.interaction.LogStrippingGuide;
 import net.minecraft.block.Block;
 import net.minecraft.block.PillarBlock;
-import net.minecraft.client.network.ClientPlayerEntity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.math.Direction;
+import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.core.Direction;
 
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
@@ -42,7 +42,7 @@ public class LogGuide extends GeneralPlacementGuide {
     }
 
     @Override
-    public boolean canExecute(ClientPlayerEntity player) {
+    public boolean canExecute(LocalPlayer player) {
         if (!Configs.STRIP_LOGS.getBooleanValue())
             return false;
 

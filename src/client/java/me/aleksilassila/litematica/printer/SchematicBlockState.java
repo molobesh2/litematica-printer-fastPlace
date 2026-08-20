@@ -1,9 +1,9 @@
 package me.aleksilassila.litematica.printer;
 
 import fi.dy.masa.litematica.world.WorldSchematic;
-import net.minecraft.block.BlockState;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.world.World;
 
 public class SchematicBlockState {

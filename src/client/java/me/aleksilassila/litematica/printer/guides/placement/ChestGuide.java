@@ -1,10 +1,10 @@
 package me.aleksilassila.litematica.printer.guides.placement;
 
 import me.aleksilassila.litematica.printer.SchematicBlockState;
-import net.minecraft.block.BlockState;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.block.ChestBlock;
 import net.minecraft.block.enums.ChestType;
-import net.minecraft.util.math.Direction;
+import net.minecraft.core.Direction;
 
 import java.util.ArrayList;
 import java.util.List;
