@@ -1,42 +1,57 @@
-# gradle
-
+```
+# Gradle
 .gradle/
 build/
-out/
-classes/
+.libs/
 
-# eclipse
+# Dependencies
+libs/
 
-*.launch
+# Environment
+.env
+.env.local
+*.env.*
 
-# idea
+# Logs
+*.log
 
+# Temporary files
+*.tmp
+*.swp
+*~
+
+# IDE
+.vscode/
 .idea/
 *.iml
 *.ipr
 *.iws
 
-# vscode
+# OS
+.DS_Store
+Thumbs.db
 
-.settings/
-.vscode/
-bin/
-.classpath
-.project
-
-# macos
-
-*.DS_Store
-
-# fabric
-
-run/
-
-# java
-
-hs_err_*.log
-replay_*.log
-*.hprof
-*.jfr
-
-/.github
+# Archives
+*.zip
+*.gz
+*.tar
+*.tgz
+*.bz2
+*.xz
+*.7z
+*.rar
+*.zst
+*.lz4
+*.lzh
+*.cab
+*.arj
+*.rpm
+*.deb
+*.Z
+*.lz
+*.lzo
+*.tar.gz
+*.tar.bz2
+*.tar.xz
+*.tar.zst
+```

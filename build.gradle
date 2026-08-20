@@ -1,38 +1,54 @@
 plugins {
-    id 'fabric-loom' version '1.15-SNAPSHOT'
+    id 'net.fabricmc.fabric-loom' version '1.15.+'
     id 'maven-publish'
 }
 
-version = project.mod_version
-group = project.maven_group
-
-base {
-    archivesName = project.archives_base_name
-}
-
 repositories {
-    maven { url = "https://maven.fabricmc.net/" }
-    maven { url = "https://jitpack.io" }
+    maven {
+        url = "https://masa.dy.fi/maven/sakura-ryoko"
+        content { includeGroupAndSubgroups("fi.dy.masa") }
+    }
+    maven {
+        url = 'https://maven.fallenbreath.me/releases'
+        content { includeGroupAndSubgroups("me.fallenbreath") }
+    }
+    maven {
+        url = 'https://maven.terraformersmc.com/releases/'
+        content { includeGroupAndSubgroups("com.terraformersmc") }
+    }
+    maven {
+        url = 'https://jitpack.io'
+        content { includeGroupAndSubgroups("com.github") }
+    }
 }
 
 dependencies {
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
-    mappings "net.fabricmc:yarn:${project.mappings_version}:v2"
-    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
-    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
-
-    // ПОДКЛЮЧЕНИЕ ЛОКАЛЬНЫХ ФАЙЛОВ
-    modImplementation files("libs/litematica-fabric-1.21.11-0.26.2.jar")
-    modImplementation files("libs/malilib-fabric-1.21.11-0.27.7.jar")
-    modImplementation files("libs/conditional-mixin-fabric-0.6.4.jar")
-
+    implementation "net.fabricmc:fabric-loader:${project.fabric_loader_version}"
     implementation "com.google.code.findbugs:jsr305:3.0.2"
+
+    implementation "fi.dy.masa.malilib:malilib-fabric-${project.minecraft_version_out}:${project.malilib_version}"
+    implementation "fi.dy.masa.litematica:litematica-fabric-${project.minecraft_version_out}:${project.litematica_version}"
+
+    api fabricApi.module("fabric-api-base", project.fabric_api_version)
+
+    compileOnly "com.terraformersmc:modmenu:${project.mod_menu_version}"
+}
+
+base {
+    group = project.maven_group + "." + project.mod_id
+    archivesName = project.mod_file_name + '-' + project.minecraft_version_out
+    version = project.mod_version
+
+    if (version.endsWith('-dev')) {
+        version += "." + new Date().format('yyyyMMdd.HHmmss')
+    }
 }
 
 loom {
     splitEnvironmentSourceSets()
     mods {
-        "modid" {
+        "litematica-printer" {
             sourceSet sourceSets.main
             sourceSet sourceSets.client
         }
@@ -40,30 +56,49 @@ loom {
 }
 
 processResources {
-    inputs.property "version", project.version
+    exclude '**/*.xcf'
+    exclude '**/xcf'
+
+    inputs.property "mod_version", project.mod_version
+
     filesMatching("fabric.mod.json") {
-        expand "version": inputs.properties.version
+        expand "mod_version": project.mod_version
     }
 }
 
 tasks.withType(JavaCompile).configureEach {
-    it.options.release = 21
+    it.options.encoding = "UTF-8"
+    it.options.release = 25
+}
+
+tasks.withType(AbstractArchiveTask).configureEach {
+    preserveFileTimestamps = true
 }
 
 java {
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
     withSourcesJar()
-    sourceCompatibility = JavaVersion.VERSION_21
-    targetCompatibility = JavaVersion.VERSION_21
 }
 
 jar {
-    inputs.property "archivesName", project.base.archivesName
     from("LICENSE") {
-        rename { "${it}_${inputs.properties.archivesName}"}
+        rename { "${it}_${base.archivesName.get()}"}
     }
 }
 
-// Ремаппинг вложенных зависимостей (важно для принтера)
-tasks.withType(net.fabricmc.loom.task.RemapJarTask).configureEach {
-    addNestedDependencies = true
+tasks.publish.dependsOn build
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            artifactId = base.archivesName.get()
+            from components.java
+        }
+    }
+
+    repositories {
+        maven {
+            url = "$projectDir/../../CommonMaven"
+        }
+    }
 }
