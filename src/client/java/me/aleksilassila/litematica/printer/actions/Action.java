@@ -1,8 +1,8 @@
 package me.aleksilassila.litematica.printer.actions;
 
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.network.ClientPlayerEntity;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.player.LocalPlayer;
 
 public abstract class Action {
-    abstract public void send(MinecraftClient client, ClientPlayerEntity player);
+    abstract public void send(Minecraft client, LocalPlayer player);
 }

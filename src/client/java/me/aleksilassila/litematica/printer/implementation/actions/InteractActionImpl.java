@@ -2,10 +2,10 @@ package me.aleksilassila.litematica.printer.implementation.actions;
 
 import me.aleksilassila.litematica.printer.actions.InteractAction;
 import me.aleksilassila.litematica.printer.implementation.PrinterPlacementContext;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.network.ClientPlayerEntity;
-import net.minecraft.util.Hand;
-import net.minecraft.util.hit.BlockHitResult;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.phys.BlockHitResult;
 
 public class InteractActionImpl extends InteractAction {
     public InteractActionImpl(PrinterPlacementContext context) {
@@ -13,7 +13,7 @@ public class InteractActionImpl extends InteractAction {
     }
 
     @Override
-    protected void interact(MinecraftClient client, ClientPlayerEntity player, Hand hand, BlockHitResult hitResult) {
+    protected void interact(Minecraft client, LocalPlayer player, InteractionHand hand, BlockHitResult hitResult) {
         if (client.interactionManager != null) {
             client.interactionManager.interactBlock(player, hand, hitResult);
             client.interactionManager.interactItem(player, hand);

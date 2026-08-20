@@ -4,10 +4,10 @@ import me.aleksilassila.litematica.printer.SchematicBlockState;
 import me.aleksilassila.litematica.printer.actions.Action;
 import me.aleksilassila.litematica.printer.actions.PrepareAction;
 import me.aleksilassila.litematica.printer.implementation.PrinterPlacementContext;
-import net.minecraft.block.*;
-import net.minecraft.client.network.ClientPlayerEntity;
-import net.minecraft.state.property.Properties;
-import net.minecraft.util.math.Direction;
+import net.minecraft.world.level.block.*;
+import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.world.level.block.state.properties.Properties;
+import net.minecraft.core.Direction;
 
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
@@ -38,7 +38,7 @@ public class RotatingBlockGuide extends GeneralPlacementGuide {
     }
 
     @Override
-    public @Nonnull List<Action> execute(ClientPlayerEntity player) {
+    public @Nonnull List<Action> execute(LocalPlayer player) {
         PrinterPlacementContext ctx = getPlacementContext(player);
 
         if (ctx == null)

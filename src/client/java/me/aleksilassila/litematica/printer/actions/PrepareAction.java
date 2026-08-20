@@ -3,15 +3,15 @@ package me.aleksilassila.litematica.printer.actions;
 import fi.dy.masa.litematica.util.InventoryUtils;
 import me.aleksilassila.litematica.printer.Printer;
 import me.aleksilassila.litematica.printer.implementation.PrinterPlacementContext;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.network.ClientPlayerEntity;
-import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.item.ItemStack;
-import net.minecraft.network.packet.c2s.play.PlayerInputC2SPacket;
-import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket;
-import net.minecraft.util.Hand;
-import net.minecraft.util.PlayerInput;
-import net.minecraft.util.math.Direction;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.network.protocol.game.ServerboundPlayerInputPacket;
+import net.minecraft.network.protocol.game.ServerboundMovePlayerPacket;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.client.player.Input;
+import net.minecraft.core.Direction;
 
 public class PrepareAction extends Action {
     public final PrinterPlacementContext context;
@@ -50,21 +50,21 @@ public class PrepareAction extends Action {
     }
 
     @Override
-    public void send(MinecraftClient client, ClientPlayerEntity player) {
+    public void send(Minecraft client, LocalPlayer player) {
 
         ItemStack itemStack = this.context.getStack();
         int slot = this.context.requiredItemSlot;
 
         if (itemStack != null && !itemStack.isEmpty() && client.getNetworkHandler() != null) {
             
-            PlayerInventory inventory = player.getInventory();
+            Inventory inventory = player.getInventory();
             if (player.getAbilities().creativeMode) {
                 this.addPickBlock(inventory, itemStack);
                 
-                client.interactionManager.clickCreativeStack(player.getStackInHand(Hand.MAIN_HAND),
+                client.interactionManager.clickCreativeStack(player.getStackInHand(InteractionHand.MAIN_HAND),
                         36 + inventory.getSlotWithStack(player.getMainHandStack()));
             } else if (slot != -1) {
-                if (PlayerInventory.isValidHotbarIndex(slot)) {
+                if (Inventory.isValidHotbarIndex(slot)) {
                     inventory.setSelectedSlot(slot);
                 } else {
                     InventoryUtils.setPickedItemToHand(slot, itemStack, client);
@@ -76,7 +76,7 @@ public class PrepareAction extends Action {
             float targetYaw = modifyYaw ? this.yaw : player.getYaw();
             float targetPitch = modifyPitch ? this.pitch : player.getPitch();
 
-            PlayerMoveC2SPacket packet = new PlayerMoveC2SPacket.Full(
+            ServerboundMovePlayerPacket packet = new ServerboundMovePlayerPacket.Full(
                 player.getX(), player.getY(), player.getZ(), 
                 targetYaw, targetPitch, 
                 player.isOnGround(), player.horizontalCollision
@@ -93,8 +93,8 @@ public class PrepareAction extends Action {
         boolean sneaking = context.shouldSneak;
         player.setSneaking(sneaking);
         
-        PlayerInput currentInput = player.input.playerInput;
-        player.input.playerInput = new PlayerInput(
+        Input currentInput = player.input.playerInput;
+        player.input.playerInput = new Input(
             currentInput.forward(), 
             currentInput.backward(), 
             currentInput.left(), 
@@ -103,12 +103,12 @@ public class PrepareAction extends Action {
             sneaking, 
             currentInput.sprint()
         );
-        player.networkHandler.sendPacket(new PlayerInputC2SPacket(player.input.playerInput));
+        player.networkHandler.sendPacket(new ServerboundPlayerInputPacket(player.input.playerInput));
     }
 
-private void addPickBlock(PlayerInventory inv, ItemStack stack) {
+private void addPickBlock(Inventory inv, ItemStack stack) {
     int slot = inv.getSlotWithStack(stack);
-    if (PlayerInventory.isValidHotbarIndex(slot)) { 
+    if (Inventory.isValidHotbarIndex(slot)) { 
         inv.removeStack(slot);
     } else if (slot == -1) {
         inv.removeStack(inv.getSwappableHotbarSlot());

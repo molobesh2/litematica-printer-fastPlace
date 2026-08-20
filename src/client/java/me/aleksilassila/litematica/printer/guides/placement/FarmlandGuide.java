@@ -3,7 +3,7 @@ package me.aleksilassila.litematica.printer.guides.placement;
 import me.aleksilassila.litematica.printer.SchematicBlockState;
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
-import net.minecraft.item.ItemStack;
+import net.minecraft.world.item.ItemStack;
 
 import javax.annotation.Nonnull;
 import java.util.Arrays;

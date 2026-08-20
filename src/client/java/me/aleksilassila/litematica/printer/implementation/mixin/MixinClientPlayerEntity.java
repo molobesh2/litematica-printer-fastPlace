@@ -9,10 +9,10 @@ import me.aleksilassila.litematica.printer.SchematicBlockState;
 import me.aleksilassila.litematica.printer.UpdateChecker;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.block.entity.SignBlockEntity;
-import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.network.AbstractClientPlayerEntity;
 import net.minecraft.client.network.ClientPlayNetworkHandler;
-import net.minecraft.client.network.ClientPlayerEntity;
+import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.network.packet.c2s.play.UpdateSignC2SPacket;
 import net.minecraft.text.Text;
@@ -26,13 +26,13 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.Optional;
 
-@Mixin(ClientPlayerEntity.class)
+@Mixin(LocalPlayer.class)
 public class MixinClientPlayerEntity extends AbstractClientPlayerEntity {
     @Unique
     private static boolean didCheckForUpdates = false;
     @Final
     @Shadow
-    protected MinecraftClient client;
+    protected Minecraft client;
     @Final
     @Shadow
     public ClientPlayNetworkHandler networkHandler;
@@ -43,7 +43,7 @@ public class MixinClientPlayerEntity extends AbstractClientPlayerEntity {
 
     @Inject(at = @At("TAIL"), method = "tick")
     public void tick(CallbackInfo ci) {
-        ClientPlayerEntity clientPlayer = (ClientPlayerEntity) (Object) this;
+        LocalPlayer clientPlayer = (LocalPlayer) (Object) this;
 
         if (!didCheckForUpdates) {
             didCheckForUpdates = true;

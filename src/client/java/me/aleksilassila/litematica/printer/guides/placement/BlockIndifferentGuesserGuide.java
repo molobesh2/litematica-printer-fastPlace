@@ -1,7 +1,7 @@
 package me.aleksilassila.litematica.printer.guides.placement;
 
 import me.aleksilassila.litematica.printer.SchematicBlockState;
-import net.minecraft.block.*;
+import net.minecraft.world.level.block.*;
 
 public class BlockIndifferentGuesserGuide extends GuesserGuide {
     public BlockIndifferentGuesserGuide(SchematicBlockState state) {

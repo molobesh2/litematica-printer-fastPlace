@@ -1,36 +1,86 @@
 ```
-# Build artifacts
-build/
-dist/
+# Compiled Java files
+*.class
 *.jar
 *.war
-*.class
+*.ear
 
-# Dependencies
-.gradle/
-node_modules/
-lib/
+# Build directories
+target/
+build/
 
 # IDE files
-.vscode/
 .idea/
 *.iml
 *.ipr
 *.iws
+.vscode/
 
-# Logs
+# Dependency management
+.gradle/
+.gradle-wrapper/
+
+# Log files
 *.log
-
-# Environment
-.env
-.env.local
-*.env.*
-
-# OS files
-.DS_Store
-Thumbs.db
 
 # Temporary files
 *.tmp
 *.temp
+*~
+.DS_Store
+Thumbs.db
+
+# Environment files
+.env
+.env.local
+*.env.*
+
+# Coverage reports
+coverage/
+htmlcov/
+
+# Bytecode cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Distribution / packaging
+.dist/
+.egg/
+.eggs/
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+
+# System files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Thumbs.db:encryptable
+*:Zone.Identifier
+desktop.ini
+
+# MyPy cache
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pytest cache
+.pytest_cache/
+
+# VSCode files
+.vscode/settings.json
 ```

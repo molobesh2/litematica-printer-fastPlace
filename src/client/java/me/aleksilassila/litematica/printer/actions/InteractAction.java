@@ -2,10 +2,10 @@ package me.aleksilassila.litematica.printer.actions;
 
 import me.aleksilassila.litematica.printer.Printer;
 import me.aleksilassila.litematica.printer.implementation.PrinterPlacementContext;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.network.ClientPlayerEntity;
-import net.minecraft.util.Hand;
-import net.minecraft.util.hit.BlockHitResult;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.phys.BlockHitResult;
 
 abstract public class InteractAction extends Action {
     public final PrinterPlacementContext context;
@@ -14,11 +14,11 @@ abstract public class InteractAction extends Action {
         this.context = context;
     }
 
-    protected abstract void interact(MinecraftClient client, ClientPlayerEntity player, Hand hand, BlockHitResult hitResult);
+    protected abstract void interact(Minecraft client, LocalPlayer player, InteractionHand hand, BlockHitResult hitResult);
 
     @Override
-    public void send(MinecraftClient client, ClientPlayerEntity player) {
-        interact(client, player, Hand.MAIN_HAND, context.hitResult);
+    public void send(Minecraft client, LocalPlayer player) {
+        interact(client, player, InteractionHand.MAIN_HAND, context.hitResult);
         Printer.printDebug("InteractAction.send: Blockpos: {} Side: {} HitPos: {}", context.getBlockPos(), context.getSide(), context.getHitPos());
     }
 

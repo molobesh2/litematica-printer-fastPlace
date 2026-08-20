@@ -7,10 +7,10 @@ import me.aleksilassila.litematica.printer.actions.ReleaseShiftAction;
 import me.aleksilassila.litematica.printer.guides.Guide;
 import me.aleksilassila.litematica.printer.implementation.PrinterPlacementContext;
 import me.aleksilassila.litematica.printer.implementation.actions.InteractActionImpl;
-import net.minecraft.client.network.ClientPlayerEntity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.hit.BlockHitResult;
-import net.minecraft.util.math.Direction;
+import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.core.Direction;
 import net.minecraft.util.math.Vec3d;
 
 import javax.annotation.Nonnull;
@@ -26,7 +26,7 @@ public abstract class InteractionGuide extends Guide {
     }
 
     @Override
-    public @Nonnull List<Action> execute(ClientPlayerEntity player) {
+    public @Nonnull List<Action> execute(LocalPlayer player) {
         List<Action> actions = new ArrayList<>();
 
         BlockHitResult hitResult = new BlockHitResult(Vec3d.ofCenter(state.blockPos), Direction.UP, state.blockPos,
