@@ -1,8 +1,9 @@
 {
   "schemaVersion": 1,
-  "id": "litematica-printer",
+  "id": "litematica_printer",
   "version": "${mod_version}",
   "name": "Litematica Printer",
+
   "description": "A fork of Litematica that adds the missing printer functionality",
   "authors": [
     "aleksilassila"
@@ -13,9 +14,10 @@
   },
   "license": "CC0-1.0",
   "icon": "assets/litematica-printer/icon.png",
+
   "environment": "client",
   "entrypoints": {
-    "client": [
+    "main": [
       "me.aleksilassila.litematica.printer.LitematicaMixinMod"
     ]
   },
@@ -23,17 +25,20 @@
     "litematica-printer.mixins.json",
     "litematica-printer-implementation.mixins.json"
   ],
+
   "depends": {
-    "fabricloader": ">=0.19.3",
-    "java": ">=25",
-    "minecraft": ">=26.2",
-    "malilib": ">=0.29.0",
-    "litematica": ">=0.28.0"
+    "minecraft": ">=26.2 <26.3",
+    "malilib": ">=0.29.0- <0.30.0-",
+    "litematica": ">=0.28.0- <0.29.0-"
   },
+  "breaks": {
+    "malilib": "<0.29.0-",
+    "litematica": "<0.28.0-"
+  },
+
   "custom": {
     "modmenu": {
       "parent": "litematica"
     }
   }
 }
-
