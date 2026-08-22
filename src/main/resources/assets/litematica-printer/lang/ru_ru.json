@@ -1,14 +1,13 @@
 {
-    "litematica-printer.config.generic.name.printingInterval": "Интервал Печати",
-    "litematica-printer.config.generic.name.printingRange": "Диапазон Печати",
-    "litematica-printer.config.generic.name.printingMode": "Режим печати",
-    "litematica-printer.config.generic.name.printingDebug": "Отладка Печати",
-    "litematica-printer.config.generic.name.replaceFluidSourceBlocks": "Замена жидкости на целевые блоки",
-    "litematica-printer.config.generic.name.stripLogs": "Отесывать бревна",
-    "litematica-printer.config.generic.name.interactBlocks": "Взаимодействующие блоки",
-    "litematica-printer.config.generic.name.blocksPerTick": "Блоков за тик",
-    "litematica-printer.config.generic.name.accurateMode": "Точный режим",
-    "litematica-printer.config.generic.name.restrictRotation": "Установка по направлению взгляда",
+    "litematica-printer.config.generic.name.printingInterval": "printingInterval",
+    "litematica-printer.config.generic.name.printingRange": "printingRange",
+    "litematica-printer.config.generic.name.printingMode": "printingMode",
+    "litematica-printer.config.generic.name.printingDebug": "printingDebug",
+    "litematica-printer.config.generic.name.replaceFluidSourceBlocks": "replaceFluidSourceBlocks",
+    "litematica-printer.config.generic.name.stripLogs": "stripLogs",
+    "litematica-printer.config.generic.name.interactBlocks": "interactBlocks",
+    "litematica-printer.config.generic.name.blocksPerTick": "blocksPerTick",
+    "litematica-printer.config.generic.name.restrictRotation": "restrictRotation",
 
     "litematica-printer.config.generic.prettyName.printingInterval": "Интервал печати",
     "litematica-printer.config.generic.prettyName.printingRange": "Диапазон печати",
@@ -18,7 +17,6 @@
     "litematica-printer.config.generic.prettyName.stripLogs": "Отесывать бревна",
     "litematica-printer.config.generic.prettyName.interactBlocks": "Взаимодействующие блоки",
     "litematica-printer.config.generic.prettyName.blocksPerTick": "Блоков за тик",
-    "litematica-printer.config.generic.prettyName.accurateMode": "Точный режим",
     "litematica-printer.config.generic.prettyName.restrictRotation": "Установка по направлению взгляда",
 
     "litematica-printer.config.generic.comment.printingInterval": "Интервал печати. Более низкие значения означают более высокую скорость печати.\nЕсли принтер создает «призрачные блоки» или блоки смотрят в неправильную сторону, увеличьте это значение.",
@@ -29,18 +27,14 @@
     "litematica-printer.config.generic.comment.stripLogs": "Должен ли принтер использовать обычные бревна, если версии с разделением\nнедоступны, а затем разделывать их топором.",
     "litematica-printer.config.generic.comment.interactBlocks": "Должен ли принтер устанавливать состояния блоков.",
     "litematica-printer.config.generic.comment.blocksPerTick": "Сколько блоков принтер пытается установить за один игровой тик.",
-    "litematica-printer.config.generic.comment.accurateMode": "Медленная, но 100% точная установка. Ставит 1 блок каждые 2 тика.\nРекомендуется для поршней/наблюдателей, если быстрый режим ошибается.",
     "litematica-printer.config.generic.comment.restrictRotation": "Устанавливает только те блоки, которые совпадают с вашим текущим направлением взгляда.\nПолезно для строительства стен или установки ряда поршней.",
 
-    "litematica-printer.config.hotkeys.name.print": "печать",
+    "litematica-printer.config.hotkeys.name.print": "print",
     "litematica-printer.config.hotkeys.name.togglePrintingMode": "togglePrintingMode",
-    "litematica-printer.config.hotkeys.name.toggleAccurateMode": "toggleAccurateMode",
 
     "litematica-printer.config.hotkeys.prettyName.print": "Печать",
     "litematica-printer.config.hotkeys.prettyName.togglePrintingMode": "Переключить режим печати",
-    "litematica-printer.config.hotkeys.prettyName.toggleAccurateMode": "Переключить точный режим",
 
     "litematica-printer.config.hotkeys.comment.print": "Печатает при нажатии",
-    "litematica-printer.config.hotkeys.comment.togglePrintingMode": "Позволяет быстро включать/выключать режим печати.",
-    "litematica-printer.config.hotkeys.comment.toggleAccurateMode": "Переключение между Быстрым и Точным режимами печати"
+    "litematica-printer.config.hotkeys.comment.togglePrintingMode": "Позволяет быстро включать/выключать режим печати."
 }

@@ -6,8 +6,9 @@
     "litematica-printer.config.generic.name.replaceFluidSourceBlocks": "replaceFluidSourceBlocks",
     "litematica-printer.config.generic.name.stripLogs": "stripLogs",
     "litematica-printer.config.generic.name.interactBlocks": "interactBlocks",
+    "litematica-printer.config.generic.name.printInAir": "printInAir",
+    "litematica-printer.config.generic.name.rotate": "rotate",
     "litematica-printer.config.generic.name.blocksPerTick": "blocksPerTick",
-    "litematica-printer.config.generic.name.accurateMode": "accurateMode",
     "litematica-printer.config.generic.name.restrictRotation": "restrictRotation",
 
     "litematica-printer.config.generic.prettyName.printingInterval": "Printing Interval",
@@ -17,8 +18,9 @@
     "litematica-printer.config.generic.prettyName.replaceFluidSourceBlocks": "Replace Fluid Source Blocks",
     "litematica-printer.config.generic.prettyName.stripLogs": "Strip Logs",
     "litematica-printer.config.generic.prettyName.interactBlocks": "Interact Blocks",
+    "litematica-printer.config.generic.prettyName.printInAir": "Print in Air",
+    "litematica-printer.config.generic.prettyName.rotate": "Rotate",
     "litematica-printer.config.generic.prettyName.blocksPerTick": "Blocks Per Tick",
-    "litematica-printer.config.generic.prettyName.accurateMode": "Accurate Mode",
     "litematica-printer.config.generic.prettyName.restrictRotation": "Restrict Rotation",
 
     "litematica-printer.config.generic.comment.printingInterval": "Printing interval. Lower values mean faster printing speed.\nIf the printer creates \"ghost blocks\" or blocks are facing the wrong way, raise this value.",
@@ -28,19 +30,18 @@
     "litematica-printer.config.generic.comment.replaceFluidSourceBlocks": "Whether or not fluid source blocks should be replaced by the printer.",
     "litematica-printer.config.generic.comment.stripLogs": "Whether or not the printer should use normal logs if stripped\nversions are not available and then strip them with an axe.",
     "litematica-printer.config.generic.comment.interactBlocks": "Whether or not the printer should set block states.",
-    "litematica-printer.config.generic.comment.blocksPerTick": "How many blocks the printer attempts to place per game tick.",
-    "litematica-printer.config.generic.comment.accurateMode": "Slow but 100% precise placement. Places 1 block every 2 ticks.\nRecommended for pistons/observers if Fast mode fails.",
-    "litematica-printer.config.generic.comment.restrictRotation": "Only places blocks that match your current horizontal viewing direction.\nUseful for building walls or placing pistons facing one way.",
-	
+    "litematica-printer.config.generic.comment.printInAir": "Allow blocks to be placed in mid-air without requiring support blocks underneath.",
+    "litematica-printer.config.generic.comment.rotate": "Alter the players yaw and pitch when placing blocks.",
+    "litematica-printer.config.generic.comment.blocksPerTick": "How many blocks the printer attempts to place in one game tick.",
+    "litematica-printer.config.generic.comment.restrictRotation": "Places only those blocks that match your current direction of view.\nUseful for building walls or installing a row of pistons.",
+
     "litematica-printer.config.hotkeys.name.print": "print",
     "litematica-printer.config.hotkeys.name.togglePrintingMode": "togglePrintingMode",
-    "litematica-printer.config.hotkeys.name.toggleAccurateMode": "toggleAccurateMode",
 
     "litematica-printer.config.hotkeys.prettyName.print": "Print",
     "litematica-printer.config.hotkeys.prettyName.togglePrintingMode": "Toggle Printing Mode",
-    "litematica-printer.config.hotkeys.prettyName.toggleAccurateMode": "Toggle Accurate Mode",
 
     "litematica-printer.config.hotkeys.comment.print": "Prints while pressed",
-    "litematica-printer.config.hotkeys.comment.togglePrintingMode": "Allows quickly toggling on/off Printing mode",
-    "litematica-printer.config.hotkeys.comment.toggleAccurateMode": "Switch between Fast and Accurate printing modes"
+    "litematica-printer.config.hotkeys.comment.togglePrintingMode": "Allows quickly toggling on/off Printing mode"
 }
+
